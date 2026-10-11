@@ -1,0 +1,221 @@
+import express from "express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import { createClient } from "@supabase/supabase-js";
+import { z } from "zod";
+import { applyAction, emptyState } from "../lib/domain.mjs";
+const text = z.string().max(500),
+  num = z.number().finite();
+const product = z.object({
+  id: z.string().optional(),
+  name: text.min(1),
+  tamil: text.default(""),
+  category: text,
+  sku: text,
+  barcode: text,
+  price: num.positive(),
+  cost: num.nonnegative(),
+  stock: num.nonnegative(),
+  unit: text,
+  reorder: num.nonnegative(),
+  art: text.default("rice"),
+  image: z
+    .string()
+    .max(700000)
+    .refine(
+      (v) => !v || /^data:image\/webp;base64,[A-Za-z0-9+/=]+$/.test(v),
+      "Only compressed WebP images accepted",
+    )
+    .default(""),
+});
+const contact = z.object({
+  id: z.string().optional(),
+  name: text.min(1),
+  phone: text,
+  address: text,
+  openingBalance: num.nonnegative().default(0),
+  creditLimit: num.nonnegative().optional(),
+});
+const schemas = {
+  product,
+  customer: contact.extend({ creditLimit: num.nonnegative() }),
+  supplier: contact,
+  checkout: z.object({
+    items: z
+      .array(z.object({ productId: z.string(), quantity: num.positive() }))
+      .min(1)
+      .max(500),
+    customerId: z.string().nullable().optional(),
+    method: z.enum(["cash", "card", "credit"]),
+    discount: num.nonnegative(),
+    tendered: num.nonnegative(),
+    heldId: z.string().nullable().optional(),
+  }),
+  payment: z.object({
+    customerId: z.string().optional(),
+    supplierId: z.string().optional(),
+    amount: num.positive(),
+    note: text.default(""),
+  }),
+  purchase: z.object({
+    supplierId: z.string(),
+    productId: z.string(),
+    quantity: num.positive(),
+    cost: num.positive(),
+    paid: num.nonnegative(),
+    reference: text.default(""),
+  }),
+  adjust: z.object({
+    productId: z.string(),
+    quantity: num,
+    reason: text.min(1),
+  }),
+  hold: z.object({
+    items: z
+      .array(z.object({ productId: z.string(), quantity: num.positive() }))
+      .min(1),
+    customerId: z.string().nullable().optional(),
+    discount: num.nonnegative(),
+    label: text,
+  }),
+  deleteHold: z.object({ id: z.string() }),
+  void: z.object({ id: z.string(), reason: text.min(1) }),
+  settings: z.object({
+    name: text.min(1),
+    address: text,
+    phone: text,
+    currency: z.literal("LKR"),
+    receiptNote: text,
+    taxRate: num.min(0).max(100),
+  }),
+};
+export function createApp() {
+  const app = express();
+  app.disable("x-powered-by");
+  app.use(helmet());
+  app.use(express.json({ limit: "1mb" }));
+  app.use(
+    "/api",
+    rateLimit({
+      windowMs: 60000,
+      limit: 180,
+      standardHeaders: "draft-8",
+      legacyHeaders: false,
+    }),
+  );
+  app.get("/api/health", (_, res) =>
+    res.json({
+      ok: true,
+      configured: Boolean(
+        process.env.NEXT_PUBLIC_SUPABASE_URL &&
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+      ),
+    }),
+  );
+  app.use("/api", async (req, res, next) => {
+    try {
+      const token = req.headers.authorization?.replace(/^Bearer /, "");
+      if (!token)
+        return res.status(401).json({ error: "Please sign in to your store" });
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL,
+        key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+      if (!url || !key)
+        return res
+          .status(503)
+          .json({ error: "Supabase configuration is missing" });
+      req.db = createClient(url, key, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data, error } = await req.db.auth.getUser(token);
+      if (error || !data.user)
+        return res
+          .status(401)
+          .json({ error: "Your session expired. Sign in again." });
+      req.user = data.user;
+      next();
+    } catch (e) {
+      next(e);
+    }
+  });
+  async function load(req) {
+    let { data, error } = await req.db
+      .from("ayngaran_stores")
+      .select("state,revision")
+      .eq("owner_id", req.user.id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) {
+      const created = await req.db
+        .from("ayngaran_stores")
+        .insert({ owner_id: req.user.id, state: emptyState() })
+        .select("state,revision")
+        .single();
+      if (created.error?.code === "23505") return load(req);
+      if (created.error) throw created.error;
+      data = created.data;
+    }
+    return data;
+  }
+  app.get("/api/state", async (req, res, next) => {
+    try {
+      res.json(await load(req));
+    } catch (e) {
+      next(e);
+    }
+  });
+  app.post("/api/actions", async (req, res, next) => {
+    try {
+      const envelope = z
+        .object({
+          id: z.uuid(),
+          type: z.enum(Object.keys(schemas)),
+          payload: z.unknown(),
+        })
+        .parse(req.body);
+      const payload = schemas[envelope.type].parse(envelope.payload);
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const current = await load(req);
+        const prior = await req.db
+          .from("ayngaran_requests")
+          .select("result")
+          .eq("owner_id", req.user.id)
+          .eq("request_id", envelope.id)
+          .maybeSingle();
+        if (prior.error) throw prior.error;
+        if (prior.data)
+          return res.json({ ...(await load(req)), result: prior.data.result });
+        const changed = applyAction(current.state, {
+          type: envelope.type,
+          payload,
+        });
+        const { data, error } = await req.db.rpc("ayngaran_commit", {
+          p_revision: current.revision,
+          p_request_id: envelope.id,
+          p_state: changed.state,
+          p_result: changed.result,
+        });
+        if (error) throw error;
+        if (!data.conflict) return res.json(data);
+      }
+      res
+        .status(409)
+        .json({ error: "Store changed while saving. Please retry." });
+    } catch (e) {
+      next(e);
+    }
+  });
+  app.use((error, req, res, next) => {
+    if (error instanceof z.ZodError)
+      return res
+        .status(400)
+        .json({ error: error.issues.map((x) => x.message).join("; ") });
+    console.error("POS request failed:", error.message);
+    res.status(error.code ? 503 : 400).json({
+      error: error.code
+        ? "Database operation failed. Check configuration and try again."
+        : error.message || "Request failed",
+    });
+  });
+  return app;
+}

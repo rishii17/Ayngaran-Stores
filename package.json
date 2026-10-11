@@ -1,0 +1,36 @@
+{
+  "name": "ayngaran-stores",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"next dev --hostname 0.0.0.0\" \"node --env-file-if-exists=.env.local --watch server/index.mjs\"",
+    "build": "next build",
+    "start": "concurrently -k \"next start --hostname 0.0.0.0\" \"node --env-file-if-exists=.env.local server/index.mjs\"",
+    "test": "node --test tests/*.test.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fontsource-variable/dm-sans": "5.3.0",
+    "@fontsource-variable/manrope": "5.3.0",
+    "@fontsource/noto-sans-tamil": "5.3.0",
+    "@supabase/supabase-js": "2.117.3",
+    "@zxing/browser": "0.2.1",
+    "concurrently": "10.0.6",
+    "express": "5.3.0",
+    "express-rate-limit": "8.7.1",
+    "helmet": "8.3.0",
+    "lucide-react": "1.55.0",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "prettier": "3.9.10",
+    "typescript": "7.0.2"
+  }
+}
