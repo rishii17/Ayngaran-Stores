@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   LayoutDashboard,
   ShoppingBasket,
@@ -46,6 +46,18 @@ import {
 } from "lucide-react";
 import ProductArt, { GaneshMark } from "./product-art";
 import Scanner from "./scanner";
+import CustomerPicker from "./customer-picker";
+import CustomerBills from "./customer-bills";
+import BackupPanel from "./backup-panel";
+import {
+  VILLAGES,
+  searchIndex,
+  searchItems,
+  contactFields,
+  contactCode,
+  matchesBill,
+} from "@/lib/search.mjs";
+import { grossProfit, dailySummary } from "@/lib/reporting.mjs";
 import {
   applyAction,
   seedState,
@@ -233,6 +245,7 @@ export default function StoreApp() {
     [calcOp, setCalcOp] = useState(""),
     [calcFresh, setCalcFresh] = useState(false),
     [reportDate, setReportDate] = useState(""),
+    [reportCustomerId, setReportCustomerId] = useState(""),
     [authMode, setAuthMode] = useState("signin");
   const searchRef = useRef<HTMLInputElement>(null),
     stateRef = useRef(state),
@@ -462,6 +475,9 @@ export default function StoreApp() {
     e.preventDefault();
     const result = await act(modal, form);
     if (result) {
+      if (modal === "customer" && page === "Point of sale") {
+        setCustomerId(result.result.id);
+      }
       setModal("");
       notify("Saved successfully");
     }
@@ -569,28 +585,65 @@ export default function StoreApp() {
       return start === "0" && key !== "." ? key : start + key;
     });
   }
-  const filteredProducts = state.products.filter(
-    (p: any) =>
-      p.active &&
-      (category === "All products" || p.category === category) &&
-      `${p.name} ${p.tamil} ${p.sku} ${p.barcode}`
-        .toLowerCase()
-        .includes(query.toLowerCase()),
+  const productIndex = useMemo(
+    () =>
+      searchIndex(state.products, (p: any) => [
+        p.name,
+        p.tamil,
+        p.sku,
+        p.barcode,
+        p.category,
+      ]),
+    [state.products],
   );
-  const tableProducts = state.products.filter(
-    (p: any) =>
-      `${p.name} ${p.sku} ${p.barcode}`
-        .toLowerCase()
-        .includes(tableQuery.toLowerCase()) &&
-      (stockFilter !== "low" || p.stock <= p.reorder),
+  const filteredProducts = useMemo(
+    () =>
+      searchItems(productIndex, query).filter(
+        (p: any) =>
+          p.active && (category === "All products" || p.category === category),
+      ),
+    [productIndex, query, category],
   );
-  const reportSales = state.sales.filter(
-    (s: any) =>
-      (!reportDate || day(s.date) === reportDate) &&
-      `${s.number} ${s.customerName}`
-        .toLowerCase()
-        .includes(tableQuery.toLowerCase()),
+  const tableProducts = useMemo(
+    () =>
+      searchItems(productIndex, tableQuery).filter(
+        (p: any) => stockFilter !== "low" || p.stock <= p.reorder,
+      ),
+    [productIndex, tableQuery, stockFilter],
   );
+  const contacts = state[page === "Suppliers" ? "suppliers" : "customers"];
+  const contactIndex = useMemo(
+    () => searchIndex(contacts, contactFields),
+    [contacts],
+  );
+  const tableContacts = useMemo(
+    () => searchItems(contactIndex, tableQuery),
+    [contactIndex, tableQuery],
+  );
+  const reportSales = useMemo(
+    () =>
+      state.sales.filter(
+        (s: any) =>
+          (!reportDate || day(s.date) === reportDate) &&
+          (!reportCustomerId || s.customerId === reportCustomerId) &&
+          matchesBill(s, tableQuery, state.customers),
+      ),
+    [state.sales, state.customers, reportDate, reportCustomerId, tableQuery],
+  );
+  const villages = [
+    ...new Set([
+      ...VILLAGES,
+      ...(state.villages || []),
+      ...state.customers.map((c: any) => c.village).filter(Boolean),
+    ]),
+  ];
+  const showCustomerBills = (id: string) => {
+    setReportCustomerId(id);
+    setReportDate("");
+    setTableQuery("");
+    setPage("Sales & reports");
+    setModal("");
+  };
   const subtitle: Record<string, string> = {
     "Point of sale": "A little less effort. A better day at the counter.",
     Dashboard: "A clear picture of your business, every day.",
@@ -946,18 +999,11 @@ export default function StoreApp() {
                 </div>
                 <div className="customer-select">
                   <Users size={18} />
-                  <select
-                    aria-label="Bill customer"
+                  <CustomerPicker
+                    customers={state.customers}
                     value={customerId}
-                    onChange={(e) => setCustomerId(e.target.value)}
-                  >
-                    <option value="">Walk-in customer</option>
-                    {state.customers.map((c: any) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} · {c.phone}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setCustomerId}
+                  />
                   <button
                     title="Add customer"
                     onClick={() =>
@@ -975,7 +1021,18 @@ export default function StoreApp() {
                 </div>
                 {selectedCustomer && (
                   <div className="customer-credit">
-                    Outstanding: Rs. {fmt(customerBalance(state, customerId))}
+                    <span>
+                      {selectedCustomer.village || "No village"} ·{" "}
+                      {contactCode(selectedCustomer)}
+                      <br />
+                      Outstanding: Rs. {fmt(customerBalance(state, customerId))}
+                    </span>
+                    <button
+                      className="text-button"
+                      onClick={() => showCustomerBills(customerId)}
+                    >
+                      View bills
+                    </button>
                   </div>
                 )}
                 <div className="bill-items-header">
@@ -1345,6 +1402,21 @@ export default function StoreApp() {
                             </span>
                           </td>
                           <td>
+                            {page === "Products" && (
+                              <button
+                                className="text-button"
+                                onClick={() =>
+                                  openForm("price", {
+                                    productId: p.id,
+                                    price: p.price,
+                                    cost: p.cost,
+                                    reason: "",
+                                  })
+                                }
+                              >
+                                Price
+                              </button>
+                            )}
                             <button
                               className="text-button"
                               onClick={() =>
@@ -1429,6 +1501,53 @@ export default function StoreApp() {
               )}
             </>
           )}
+          {page === "Products" && (
+            <section className="panel">
+              <div className="panel-heading">
+                <div>
+                  <h2>Price change history</h2>
+                  <p>Selling price and cost changes, including purchases</p>
+                </div>
+              </div>
+              <div className="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Product</th>
+                      <th>Selling price</th>
+                      <th>Cost</th>
+                      <th>Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(state.priceHistory || []).slice(0, 100).map((h: any) => (
+                      <tr key={h.id}>
+                        <td>{dateLabel(h.date)}</td>
+                        <td>
+                          {
+                            state.products.find(
+                              (p: any) => p.id === h.productId,
+                            )?.name
+                          }
+                        </td>
+                        <td>
+                          {fmt(h.oldPrice)} → {fmt(h.newPrice)}
+                        </td>
+                        <td>
+                          {fmt(h.oldCost)} → {fmt(h.newCost)}
+                        </td>
+                        <td>{h.reason}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {!state.priceHistory?.length && (
+                  <p className="muted history-empty">No price changes yet.</p>
+                )}
+              </div>
+            </section>
+          )}
           {(page === "Customers" || page === "Suppliers") && (
             <>
               {page === "Suppliers" && (
@@ -1467,7 +1586,9 @@ export default function StoreApp() {
                     <Search size={18} />
                     <input
                       placeholder={
-                        "Search " + page.toLowerCase() + " by name or phone"
+                        "Search " +
+                        page.toLowerCase() +
+                        " by name, phone, ID or village"
                       }
                       value={tableQuery}
                       onChange={(e) => setTableQuery(e.target.value)}
@@ -1496,64 +1617,64 @@ export default function StoreApp() {
                       </tr>
                     </thead>
                     <tbody>
-                      {state[page === "Customers" ? "customers" : "suppliers"]
-                        .filter((c: any) =>
-                          `${c.name} ${c.phone}`
-                            .toLowerCase()
-                            .includes(tableQuery.toLowerCase()),
-                        )
-                        .map((c: any) => {
-                          const balance =
-                            page === "Customers"
-                              ? customerBalance(state, c.id)
-                              : supplierBalance(state, c.id);
-                          return (
-                            <tr key={c.id}>
-                              <td>
-                                <div className="person-cell">
-                                  <span className="person-avatar">
-                                    {c.name
-                                      .split(" ")
-                                      .map((s: string) => s[0])
-                                      .slice(0, 2)
-                                      .join("")}
-                                  </span>
+                      {tableContacts.map((c: any) => {
+                        const balance =
+                          page === "Customers"
+                            ? customerBalance(state, c.id)
+                            : supplierBalance(state, c.id);
+                        return (
+                          <tr key={c.id}>
+                            <td>
+                              <div className="person-cell">
+                                <span className="person-avatar">
+                                  {c.name
+                                    .split(" ")
+                                    .map((s: string) => s[0])
+                                    .slice(0, 2)
+                                    .join("")}
+                                </span>
+                                <div>
                                   <strong>{c.name}</strong>
+                                  <small>
+                                    {contactCode(c)} ·{" "}
+                                    {c.village || "No village"}
+                                  </small>
                                 </div>
-                              </td>
-                              <td>{c.phone || "—"}</td>
-                              <td>{c.address || "—"}</td>
-                              <td>
-                                <strong
-                                  className={
-                                    balance > 0 ? "negative" : "positive"
-                                  }
-                                >
-                                  Rs. {fmt(balance)}
-                                </strong>
-                              </td>
-                              {page === "Customers" && (
-                                <td>Rs. {fmt(c.creditLimit)}</td>
-                              )}
-                              <td>
-                                <button
-                                  className="text-button"
-                                  onClick={() =>
-                                    openForm("ledger", {
-                                      ...c,
-                                      kind:
-                                        page === "Customers"
-                                          ? "customer"
-                                          : "supplier",
-                                    })
-                                  }
-                                >
-                                  View account <ChevronRight size={15} />
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                              </div>
+                            </td>
+                            <td>{c.phone || "—"}</td>
+                            <td>{c.address || "—"}</td>
+                            <td>
+                              <strong
+                                className={
+                                  balance > 0 ? "negative" : "positive"
+                                }
+                              >
+                                Rs. {fmt(balance)}
+                              </strong>
+                            </td>
+                            {page === "Customers" && (
+                              <td>Rs. {fmt(c.creditLimit)}</td>
+                            )}
+                            <td>
+                              <button
+                                className="text-button"
+                                onClick={() =>
+                                  openForm("ledger", {
+                                    ...c,
+                                    kind:
+                                      page === "Customers"
+                                        ? "customer"
+                                        : "supplier",
+                                  })
+                                }
+                              >
+                                View account <ChevronRight size={15} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -1666,17 +1787,7 @@ export default function StoreApp() {
                     fmt(
                       reportSales
                         .filter((s: any) => !s.void)
-                        .reduce(
-                          (a: number, s: any) =>
-                            a +
-                            s.subtotal -
-                            s.discount -
-                            s.items.reduce(
-                              (b: number, l: any) => b + l.cost * l.quantity,
-                              0,
-                            ),
-                          0,
-                        ),
+                        .reduce((a: number, s: any) => a + grossProfit(s), 0),
                     )
                   }
                   icon={ChartNoAxesCombined}
@@ -1688,11 +1799,23 @@ export default function StoreApp() {
                   <div className="search-box">
                     <Search size={18} />
                     <input
-                      placeholder="Search bill number or customer"
+                      placeholder="Search bill, sale ID, customer, phone or village"
                       value={tableQuery}
                       onChange={(e) => setTableQuery(e.target.value)}
                     />
                   </div>
+                  <select
+                    aria-label="Filter bills by customer"
+                    value={reportCustomerId}
+                    onChange={(e) => setReportCustomerId(e.target.value)}
+                  >
+                    <option value="">All customers</option>
+                    {state.customers.map((c: any) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} · {c.village || contactCode(c)}
+                      </option>
+                    ))}
+                  </select>
                   <input
                     aria-label="Filter sales by date"
                     type="date"
@@ -1883,6 +2006,11 @@ export default function StoreApp() {
                     </button>
                   </div>
                 </section>
+                <BackupPanel
+                  state={state}
+                  mode={mode}
+                  onSeed={() => openForm("seed", { confirm: "" })}
+                />
                 <section className="panel">
                   <div className="panel-heading">
                     <h2>Counter shortcuts</h2>
@@ -1927,6 +2055,8 @@ export default function StoreApp() {
           title={
             (
               {
+                seed: "Load dummy data",
+                price: "Update product price",
                 product: form.id ? "Edit product" : "Add a new product",
                 customer: form.id ? "Edit customer" : "Add a customer",
                 supplier: form.id ? "Edit supplier" : "Add a supplier",
@@ -1954,6 +2084,73 @@ export default function StoreApp() {
             <div className="alert" role="alert">
               {error}
             </div>
+          )}
+          {modal === "seed" && (
+            <form onSubmit={submitForm}>
+              <p>
+                Load 16 dummy products, customers with villages, suppliers and
+                sample transactions. This works only on an empty store and never
+                replaces existing records.
+              </p>
+              <Field label="Type LOAD DUMMY DATA to confirm">
+                <input
+                  value={form.confirm}
+                  onChange={(e) => update("confirm", e.target.value)}
+                  required
+                />
+              </Field>
+              <button
+                className="primary wide"
+                disabled={busy || form.confirm !== "LOAD DUMMY DATA"}
+              >
+                Load dummy data
+              </button>
+            </form>
+          )}
+          {modal === "price" && (
+            <form onSubmit={submitForm}>
+              <h3>
+                {state.products.find((p: any) => p.id === form.productId)?.name}
+              </h3>
+              <p>
+                New bills use the updated price. Existing bills and their
+                profits keep the original price and cost.
+              </p>
+              <Field label="New selling price (LKR)">
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={form.price}
+                  required
+                  onChange={(e) => update("price", Number(e.target.value))}
+                />
+              </Field>
+              <Field label="New purchase cost (LKR)">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.cost}
+                  required
+                  onChange={(e) => update("cost", Number(e.target.value))}
+                />
+              </Field>
+              <Field label="Reason for price update">
+                <input
+                  value={form.reason}
+                  required
+                  onChange={(e) => update("reason", e.target.value)}
+                />
+              </Field>
+              <div className="payment-balance">
+                <span>Gross margin per unit</span>
+                <strong>Rs. {fmt(form.price - form.cost)}</strong>
+              </div>
+              <button className="primary wide" disabled={busy}>
+                Save price update
+              </button>
+            </form>
           )}
           {modal === "scanner" && <Scanner onScan={scan} />}
           {modal === "productScanner" && (
@@ -2132,6 +2329,21 @@ export default function StoreApp() {
                   onChange={(e) => update("address", e.target.value)}
                 />
               </Field>
+              {modal === "customer" && (
+                <Field label="Village (optional)">
+                  <input
+                    list="village-options"
+                    value={form.village || ""}
+                    onChange={(e) => update("village", e.target.value)}
+                    placeholder="Choose or type a village"
+                  />
+                  <datalist id="village-options">
+                    {villages.map((v: any) => (
+                      <option key={v} value={v} />
+                    ))}
+                  </datalist>
+                </Field>
+              )}
               <Field label="Opening balance (LKR)">
                 <input
                   type="number"
@@ -2391,6 +2603,14 @@ export default function StoreApp() {
                 settings={state.settings}
                 demo={mode === "demo"}
               />
+              <div className="payment-balance">
+                <span>Gross profit on this sale</span>
+                <strong>Rs. {fmt(grossProfit(receipt))}</strong>
+              </div>
+              <p className="muted">
+                After discount, before tax and overheads. This is not printed on
+                the customer receipt.
+              </p>
               <div className="form-actions">
                 <button className="button" onClick={close}>
                   Done
@@ -2473,6 +2693,16 @@ export default function StoreApp() {
                   Record {form.kind === "customer" ? "collection" : "payment"}
                 </button>
               </div>
+              {form.kind === "customer" && (
+                <CustomerBills
+                  sales={state.sales}
+                  customer={form}
+                  onReceipt={(sale) => {
+                    setReceipt(sale);
+                    setModal("receipt");
+                  }}
+                />
+              )}
               <div className="table-scroll">
                 <table>
                   <thead>
@@ -2864,6 +3094,7 @@ export default function StoreApp() {
               <th>Customer</th>
               <th>Payment</th>
               <th>Total</th>
+              <th>Gross profit</th>
               <th>Status</th>
               <th />
             </tr>
@@ -2879,6 +3110,9 @@ export default function StoreApp() {
                 <td className="capitalize">{s.method}</td>
                 <td>
                   <strong>Rs. {fmt(s.total)}</strong>
+                </td>
+                <td className={grossProfit(s) < 0 ? "negative" : "positive"}>
+                  Rs. {fmt(grossProfit(s))}
                 </td>
                 <td>
                   <span className={"status " + (s.void ? "amber" : "green")}>
@@ -3003,7 +3237,16 @@ function Receipt({
         <span>{sale.number}</span>
         <span>{dateLabel(sale.date)}</span>
       </div>
-      <p className="receipt-customer">Customer: {sale.customerName}</p>
+      <p className="receipt-customer">
+        Customer: {sale.customerName}
+        {sale.customerVillage && <> · {sale.customerVillage}</>}
+        {sale.customerCode && (
+          <>
+            <br />
+            {sale.customerCode}
+          </>
+        )}
+      </p>
       <table>
         <thead>
           <tr>

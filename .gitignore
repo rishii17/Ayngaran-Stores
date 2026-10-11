@@ -7,3 +7,5 @@ out/
 .DS_Store
 preview-*.png
 sample-receipt.pdf
+artifacts/
+sample-daily-backup.xlsx

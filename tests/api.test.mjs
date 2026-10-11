@@ -11,6 +11,12 @@ test("API health and unauthorized data access", async () => {
     assert.equal((await health.json()).ok, true);
     const state = await fetch(base + "/api/state");
     assert.equal(state.status, 401);
+    for (const path of ["/api/backup?date=2026-10-12", "/api/connection"]) {
+      const r = await fetch(base + path);
+      assert.equal(r.status, 401);
+      assert.equal(r.headers.get("cache-control"), "no-store");
+      assert.equal(r.headers.get("x-content-type-options"), "nosniff");
+    }
     const mutation = await fetch(base + "/api/actions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

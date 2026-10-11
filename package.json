@@ -8,7 +8,13 @@
     "build": "next build",
     "start": "concurrently -k \"next start --hostname 0.0.0.0\" \"node --env-file-if-exists=.env.local server/index.mjs\"",
     "test": "node --test tests/*.test.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:env": "node --env-file-if-exists=.env.local scripts/check-env.mjs",
+    "seed:generate": "node scripts/generate-seed.mjs",
+    "verify": "npm run check:env && npm test && npm run build && npm run typecheck",
+    "test:browser": "node tests/browser/release.mjs && node tests/browser/scanner.mjs",
+    "audit:security": "npm audit --audit-level=moderate",
+    "prebuild": "node --env-file-if-exists=.env.local scripts/check-env.mjs --allow-missing"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "5.3.0",
@@ -17,6 +23,7 @@
     "@supabase/supabase-js": "2.117.3",
     "@zxing/browser": "0.2.1",
     "concurrently": "10.0.6",
+    "exceljs": "4.4.0",
     "express": "5.3.0",
     "express-rate-limit": "8.7.1",
     "helmet": "8.3.0",
@@ -30,7 +37,13 @@
     "@types/node": "26.6.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "playwright-core": "1.64.0",
     "prettier": "3.9.10",
     "typescript": "7.0.2"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "11.1.1"
+    }
   }
 }

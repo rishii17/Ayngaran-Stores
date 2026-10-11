@@ -69,3 +69,39 @@ export async function webp(file: File) {
     throw Error("Image is too large after compression");
   return result;
 }
+
+export async function excelBackup(
+  state: any,
+  date: string,
+  mode: "demo" | "live",
+) {
+  let blob: Blob;
+  if (mode === "live") {
+    const session = await getSupabase()?.auth.getSession();
+    const token = session?.data.session?.access_token;
+    if (!token) throw Error("Sign in to download a live backup");
+    const res = await fetch("/api/backup?date=" + encodeURIComponent(date), {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(60000),
+    });
+    if (!res.ok) {
+      const message = await res
+        .json()
+        .catch(() => ({ error: "Backup failed" }));
+      throw Error(message.error);
+    }
+    blob = await res.blob();
+  } else {
+    const { createBackup } = await import("./backup.mjs");
+    const bytes = await createBackup(state, date, "demo");
+    blob = new Blob([bytes as BlobPart], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+  }
+  const url = URL.createObjectURL(blob),
+    a = document.createElement("a");
+  a.href = url;
+  a.download = `ayngaran-${mode}-${date}.xlsx`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

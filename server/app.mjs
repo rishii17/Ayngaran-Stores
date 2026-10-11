@@ -4,6 +4,7 @@ import rateLimit from "express-rate-limit";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { applyAction, emptyState } from "../lib/domain.mjs";
+import { createBackup, validDate } from "../lib/backup.mjs";
 const text = z.string().max(500),
   num = z.number().finite();
 const product = z.object({
@@ -33,10 +34,18 @@ const contact = z.object({
   name: text.min(1),
   phone: text,
   address: text,
+  village: text.optional().default(""),
   openingBalance: num.nonnegative().default(0),
   creditLimit: num.nonnegative().optional(),
 });
 const schemas = {
+  seed: z.object({ confirm: z.literal("LOAD DUMMY DATA") }),
+  price: z.object({
+    productId: z.string(),
+    price: num.positive(),
+    cost: num.nonnegative(),
+    reason: text.min(1),
+  }),
   product,
   customer: contact.extend({ creditLimit: num.nonnegative() }),
   supplier: contact,
@@ -93,6 +102,10 @@ export function createApp() {
   const app = express();
   app.disable("x-powered-by");
   app.use(helmet());
+  app.use("/api", (_req, res, next) => {
+    res.set("Cache-Control", "no-store");
+    next();
+  });
   app.use(express.json({ limit: "1mb" }));
   app.use(
     "/api",
@@ -164,6 +177,35 @@ export function createApp() {
       next(e);
     }
   });
+  app.get("/api/backup", async (req, res, next) => {
+    try {
+      const date = validDate(String(req.query.date || ""));
+      const { state } = await load(req);
+      const bytes = await createBackup(state, date, "live");
+      res.set({
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="ayngaran-live-${date}.xlsx"`,
+        "Cache-Control": "no-store",
+      });
+      res.send(Buffer.from(bytes));
+    } catch (e) {
+      next(e);
+    }
+  });
+  app.get("/api/connection", async (req, res, next) => {
+    try {
+      const store = await load(req);
+      res.json({
+        authenticated: true,
+        database: true,
+        revision: store.revision,
+        ownerId: req.user.id,
+      });
+    } catch (e) {
+      next(e);
+    }
+  });
   app.post("/api/actions", async (req, res, next) => {
     try {
       const envelope = z
@@ -185,7 +227,18 @@ export function createApp() {
         if (prior.error) throw prior.error;
         if (prior.data)
           return res.json({ ...(await load(req)), result: prior.data.result });
+        let seedTemplate;
+        if (envelope.type === "seed") {
+          const template = await req.db
+            .from("ayngaran_seed_templates")
+            .select("state")
+            .eq("name", "grocery-v1")
+            .single();
+          if (template.error) throw template.error;
+          seedTemplate = template.data.state;
+        }
         const changed = applyAction(current.state, {
+          seedTemplate,
           type: envelope.type,
           payload,
         });
