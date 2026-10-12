@@ -79,28 +79,9 @@ export default function Scanner({
         if (cancelled) return;
         element!.srcObject = stream;
         await element!.play();
-        const { BrowserMultiFormatReader } = await import("@zxing/browser");
-        const { DecodeHintType, BarcodeFormat } =
-          await import("@zxing/library");
-        const hints = new Map();
-        hints.set(DecodeHintType.TRY_HARDER, true);
-        if (scanMode === "barcode")
-          hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-            BarcodeFormat.EAN_13,
-            BarcodeFormat.EAN_8,
-            BarcodeFormat.UPC_A,
-            BarcodeFormat.UPC_E,
-            BarcodeFormat.CODE_128,
-            BarcodeFormat.CODE_39,
-            BarcodeFormat.CODE_93,
-            BarcodeFormat.ITF,
-            BarcodeFormat.CODABAR,
-            BarcodeFormat.RSS_14,
-            BarcodeFormat.RSS_EXPANDED,
-          ]);
-        if (scanMode === "qr")
-          hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE]);
-        const reader = new BrowserMultiFormatReader(hints);
+        const { createCameraDecoder } =
+          await import("../lib/camera-decoder.mjs");
+        const decodeCanvas = createCameraDecoder(scanMode);
         let detector: any = null;
         const Native = (window as any).BarcodeDetector;
         if (Native)
@@ -152,18 +133,14 @@ export default function Scanner({
                 }
               frame++;
               if (!value && (!detector || frame % 3 === 0)) {
-                try {
-                  value = reader.decodeFromCanvas(canvas).getText();
-                } catch {}
+                value = decodeCanvas(canvas);
                 if (!value && scanMode !== "qr" && frame % 3 === 0) {
                   rotated.width = canvas.height;
                   rotated.height = canvas.width;
                   rotatedContext.translate(rotated.width, 0);
                   rotatedContext.rotate(Math.PI / 2);
                   rotatedContext.drawImage(canvas, 0, 0);
-                  try {
-                    value = reader.decodeFromCanvas(rotated).getText();
-                  } catch {}
+                  value = decodeCanvas(rotated);
                 }
               }
               if (value && !cancelled) {
@@ -173,7 +150,17 @@ export default function Scanner({
                 return;
               }
             }
-          } catch {}
+          } catch (error: any) {
+            if (!cancelled) {
+              cancelled = true;
+              stream?.getTracks().forEach((t) => t.stop());
+              setStatus("Camera processing stopped");
+              setError(
+                error.message ||
+                  "Camera image processing failed. Reopen the scanner or use hardware barcode entry.",
+              );
+            }
+          }
           if (!cancelled) timer = setTimeout(decode, 100);
         };
         void decode();

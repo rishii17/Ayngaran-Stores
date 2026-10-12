@@ -8,6 +8,11 @@ const b = await chromium.launch({
   args: ["--no-sandbox"],
 });
 const p = await b.newPage();
+const decoderWarnings = [];
+p.on("console", (message) => {
+  if (/MultiFormatReader|Could not create a Canvas/.test(message.text()))
+    decoderWarnings.push(message.text());
+});
 await p.addInitScript((code) => {
   const L = [
     "0001101",
@@ -88,6 +93,9 @@ await p.getByRole("button", { name: "Scan", exact: true }).click();
 await p
   .getByRole("button", { name: "Low-light enhancement", exact: true })
   .click();
+await p.getByText(/Camera scanning ready|Fast camera scanning ready/).waitFor();
+await p.waitForTimeout(1200);
+assert.deepEqual(decoderWarnings, []);
 await p.evaluate(() => (window.showBarcode = true));
 await p
   .getByRole("button", { name: "Charge Rs. 240.00" })
@@ -101,4 +109,5 @@ assert.equal(
 console.log(
   "PASS: generated EAN-13 decoded from synthetic low-contrast camera stream; tracks stopped after scan.",
 );
+assert.deepEqual(decoderWarnings, []);
 await b.close();

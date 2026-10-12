@@ -90,3 +90,9 @@ Removed the separate mobile-scanner page, pairing server/routes, phone component
 POS and supplier purchases now have a dedicated Hardware scanner input. Keyboard/HID scanner output terminated by Enter adds one unit, retains focus and reports unknown codes without fuzzy matching or submitting a bill/purchase. USB keyboard scanners and Ethernet devices with vendor keyboard-output software are supported by this input; direct TCP/UDP Ethernet scanner protocols require a model-specific integration and are not claimed as implemented.
 
 Verified: 33 automated tests, production build, TypeScript and five browser suites passed. Tests include repeated hardware-style scans, UPC/EAN equivalence, unknown-code rejection, focus retention, multi-product purchase saving, camera formats, calculator controls and HTTP 404 for the removed phone page/manifest. Physical scanner verification remains pending until a device is selected. No live store records were changed. Existing local certificate files remain ignored and were not deleted.
+
+## Camera decoder error handling — 13 October 2026
+
+Replaced the library's noisy MultiFormatReader/browser luminance path with explicit format readers over grayscale pixel data. Expected no-match/checksum/format failures continue to the next reader without logging every frame; unexpected processing failures stop the camera and show an error. Rotation remains in the app's explicit canvas path, avoiding the library's failing internal canvas allocation. Hardware keyboard entry is unchanged.
+
+Verified production build/type checking; idle camera without repeated MultiFormatReader/canvas warnings; low-contrast EAN-13, EAN-8, UPC-A, Code128, rotated Code128 and QR camera fixtures; hardware-scanner regression. The idle-camera/EAN-13 test also passed against Next development mode.
