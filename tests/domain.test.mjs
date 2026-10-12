@@ -62,7 +62,10 @@ test("fractional weighed products and discount/tax calculate correctly", () => {
 });
 test("short cash, negative quantity and excessive discounts are rejected", () => {
   const s = seedState();
-  assert.throws(() => applyAction(s, bill(s, { tendered: 100 })), /less than/);
+  assert.throws(
+    () => applyAction(s, bill(s, { tendered: 100 })),
+    /Select a customer/,
+  );
   assert.throws(
     () =>
       applyAction(
@@ -284,4 +287,39 @@ test("subtotal agrees with rounded receipt line amounts", () => {
     ]).total,
     0.02,
   );
+});
+
+test("partial cash automatically adds only the unpaid amount to customer credit", () => {
+  const s = seedState();
+  const id = s.customers[0].id;
+  const before = customerBalance(s, id);
+  const { state, result } = applyAction(
+    s,
+    bill(s, { tendered: 100.25, customerId: id }),
+  );
+  assert.equal(result.paid, 100.25);
+  assert.equal(result.change, 0);
+  assert.equal(result.total, 480);
+  assert.equal(customerBalance(state, id), before + 379.75);
+  assert.equal(state.products[0].stock, s.products[0].stock - 2);
+  const collected = applyAction(state, {
+    type: "payment",
+    payload: { customerId: id, amount: 379.75 },
+  });
+  assert.equal(customerBalance(collected.state, id), before);
+});
+
+test("automatic cash credit enforces the customer limit atomically", () => {
+  const s = seedState();
+  const id = s.customers[0].id;
+  s.customers[0].creditLimit = customerBalance(s, id) + 100;
+  const snapshot = structuredClone(s);
+  assert.throws(
+    () => applyAction(s, bill(s, { customerId: id, tendered: 0 })),
+    /credit limit/,
+  );
+  assert.deepEqual(s, snapshot);
+  const { result } = applyAction(s, bill(s, { customerId: id, tendered: 500 }));
+  assert.equal(result.paid, 480);
+  assert.equal(result.change, 20);
 });

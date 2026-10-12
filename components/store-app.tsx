@@ -424,6 +424,18 @@ export default function StoreApp() {
   const selectedCustomer = state.customers.find(
     (c: any) => c.id === customerId,
   );
+  const checkoutCredit =
+    method === "card"
+      ? 0
+      : Math.max(0, Math.round((total.total - Number(tendered)) * 100) / 100);
+  const checkoutBalance = selectedCustomer
+    ? Math.round((customerBalance(state, customerId) + checkoutCredit) * 100) /
+      100
+    : checkoutCredit;
+  const creditLimitExceeded =
+    checkoutCredit > 0 &&
+    selectedCustomer &&
+    checkoutBalance > selectedCustomer.creditLimit;
   function addProduct(p: any) {
     const old = cart.find((l) => l.productId === p.id);
     if ((old?.quantity || 0) + 1 > p.stock) {
@@ -2394,9 +2406,19 @@ export default function StoreApp() {
                   </button>
                 ))}
               </div>
-              {method === "credit" && !customerId && (
+              {(method === "credit" || checkoutCredit > 0) && !customerId && (
                 <div className="alert">
-                  Select a customer on the bill before recording credit.
+                  Select a customer below to save the unpaid balance as credit.
+                </div>
+              )}
+              {(method === "credit" || checkoutCredit > 0) && (
+                <div className="customer-select">
+                  <Users size={18} />
+                  <CustomerPicker
+                    customers={state.customers}
+                    value={customerId}
+                    onChange={setCustomerId}
+                  />
                 </div>
               )}
               <Field
@@ -2440,13 +2462,19 @@ export default function StoreApp() {
                   </div>
                 </>
               )}
-              {method === "credit" && (
+              {(method === "credit" || checkoutCredit > 0) && (
                 <div className="payment-balance">
                   <span>Added to customer credit</span>
-                  <strong>
-                    Rs. {fmt(Math.max(0, total.total - Number(tendered)))}
-                  </strong>
+                  <strong>Rs. {fmt(checkoutCredit)}</strong>
                 </div>
+              )}
+              {checkoutCredit > 0 && selectedCustomer && (
+                <p className={creditLimitExceeded ? "alert" : "muted"}>
+                  Customer balance after this bill: Rs. {fmt(checkoutBalance)}.
+                  {creditLimitExceeded
+                    ? " Customer credit limit exceeded."
+                    : " The unpaid amount is saved automatically when you complete the sale."}
+                </p>
               )}
               {method === "card" && (
                 <p className="muted">
@@ -2459,7 +2487,12 @@ export default function StoreApp() {
                 disabled={
                   busy ||
                   (method === "credit" && !customerId) ||
-                  (method === "cash" && Number(tendered) < total.total)
+                  (checkoutCredit > 0 && !customerId) ||
+                  !!creditLimitExceeded ||
+                  tendered.trim() === "" ||
+                  !Number.isFinite(Number(tendered)) ||
+                  Number(tendered) < 0 ||
+                  (method === "credit" && Number(tendered) > total.total)
                 }
                 onClick={checkout}
               >
