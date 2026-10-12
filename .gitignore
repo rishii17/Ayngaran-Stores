@@ -10,3 +10,5 @@ sample-receipt.pdf
 artifacts/
 sample-daily-backup.xlsx
 certificates/
+
+supabase/.temp/

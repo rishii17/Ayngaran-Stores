@@ -1,3 +1,5 @@
+-- Baseline for a NEW database. Existing databases: run the relational migration, not this file.
+-- Then apply migrations/20261012202125_normalize_store_records.sql; see docs/DATABASE-ARCHITECTURE.md.
 -- Separate names preserve the project's existing pos_* tables.
 create table if not exists public.ayngaran_stores (
  owner_id uuid primary key references auth.users(id) on delete cascade,

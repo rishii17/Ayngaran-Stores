@@ -96,3 +96,11 @@ Verified: 33 automated tests, production build, TypeScript and five browser suit
 Replaced the library's noisy MultiFormatReader/browser luminance path with explicit format readers over grayscale pixel data. Expected no-match/checksum/format failures continue to the next reader without logging every frame; unexpected processing failures stop the camera and show an error. Rotation remains in the app's explicit canvas path, avoiding the library's failing internal canvas allocation. Hardware keyboard entry is unchanged.
 
 Verified production build/type checking; idle camera without repeated MultiFormatReader/canvas warnings; low-contrast EAN-13, EAN-8, UPC-A, Code128, rotated Code128 and QR camera fixtures; hardware-scanner regression. The idle-camera/EAN-13 test also passed against Next development mode.
+
+## Normalized database architecture — 13 October 2026
+
+Added 16 typed business tables, owner-qualified foreign keys, financial and stock constraints, owner RLS, indexes, and customer/supplier balance and Sri Lanka daily-sales views. The repository adapter keeps the current UI/API state shape while the v2 commit RPC writes only changed rows atomically. Legacy records and request IDs are migrated, with the original store JSON retained as a pre-upgrade archive. Old commit calls are blocked after migration; the new app falls back only for an unmigrated database with a missing v2 RPC.
+
+Validation: migration and all existing transaction types tested in isolated PostgreSQL/PGlite, including rollback, owner isolation, anonymous denial, repeated migration, legacy single-line purchases, retained snapshots/custom fields, partial payments, voids and reporting balances. Domain/API/repository tests, production build, TypeScript and all six browser regression scripts passed. Dependency audit: zero vulnerabilities.
+
+Live status: Supabase project `uoddttvmpqkojdwofcxr` denied this connection access. No live migration or live security-advisor run was performed. Apply the tested migration using the [database architecture guide](DATABASE-ARCHITECTURE.md), then complete signed-in acceptance checks. Existing screen flows were not changed.

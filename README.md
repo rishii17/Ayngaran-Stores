@@ -70,7 +70,7 @@ RLS restricts every row to its authenticated owner. Anonymous table access and c
 
 ### Architecture and production scope
 
-This is a functional single-owner application foundation, **not a certified enterprise ERP**. Store state is a versioned JSONB aggregate, with a request table for idempotency. Product images are compressed WebP data URLs inside that state. This keeps checkout changes atomic and setup straightforward, but the whole store is read/written per operation and images count toward response size.
+This is a functional single-owner application foundation, **not a certified enterprise ERP**. The relational upgrade stores business entities and line items in separate owner-scoped tables, with revision locking and a request table for idempotency. See [database architecture and migration](docs/DATABASE-ARCHITECTURE.md). Before applying that migration, the adapter supports the original versioned JSONB store. Product images remain compressed WebP data URLs; after migration they have their own table. This keeps checkout changes atomic and setup straightforward, but the compatibility API still reads the whole store per operation and images count toward response size; normalized commits write only changed records.
 
 For high transaction volumes or large catalogues, move to normalized products, sale lines, movements and ledger tables, move images to Supabase Storage, paginate reports and introduce retention/archival. Owner RLS is the security boundary; owners have write privileges on their own aggregate. It is not a tamper-proof accounting ledger and there are no cashier/manager roles, multi-branch sharing, partial returns, payment gateway, automated backup scheduling or offline cloud-sync queue in this release.
 
@@ -159,3 +159,8 @@ Optional cleanup on your Windows computer: remove the old firewall rule with `Re
 Deploy as a Next.js application with Node.js API support, not a static export. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in the hosting environment before building. Build with `npm run build`; on a Node server start with `npm start`. On managed Next.js hosting use its normal Next.js deployment settings.
 
 After deploying, open `/api/health` on the website: it must return JSON with `ok: true`. `/api/state` without signing in must return a JSON 401 response. A 404 or HTML page means the API deployment is missing; a 502/503 usually means the host failed to start the server. Product creation and all other mutations still require a verified Supabase user and owner-scoped database permissions.
+
+
+## Recommended database upgrade
+
+Use the [relational architecture and migration guide](docs/DATABASE-ARCHITECTURE.md) to upgrade the two-table store without changing the billing workflow. The migration creates 16 business tables, preserves existing data, and adds owner-protected balance and daily-sales views. Deploying code alone does not migrate the database.

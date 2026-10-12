@@ -3,7 +3,8 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { applyAction, emptyState } from "../lib/domain.mjs";
+import { applyAction } from "../lib/domain.mjs";
+import { loadStore, commitStore } from "./store-repository.mjs";
 import { createBackup, validDate } from "../lib/backup.mjs";
 const text = z.string().max(500),
   num = z.number().finite();
@@ -174,23 +175,7 @@ export function createApp() {
     }
   });
   async function load(req) {
-    let { data, error } = await req.db
-      .from("ayngaran_stores")
-      .select("state,revision")
-      .eq("owner_id", req.user.id)
-      .maybeSingle();
-    if (error) throw error;
-    if (!data) {
-      const created = await req.db
-        .from("ayngaran_stores")
-        .insert({ owner_id: req.user.id, state: emptyState() })
-        .select("state,revision")
-        .single();
-      if (created.error?.code === "23505") return load(req);
-      if (created.error) throw created.error;
-      data = created.data;
-    }
-    return data;
+    return loadStore(req.db, req.user.id);
   }
   app.get("/api/state", async (req, res, next) => {
     try {
@@ -221,6 +206,7 @@ export function createApp() {
       res.json({
         authenticated: true,
         database: true,
+        storageVersion: store.storageVersion,
         revision: store.revision,
         ownerId: req.user.id,
       });
@@ -264,13 +250,13 @@ export function createApp() {
           type: envelope.type,
           payload,
         });
-        const { data, error } = await req.db.rpc("ayngaran_commit", {
-          p_revision: current.revision,
-          p_request_id: envelope.id,
-          p_state: changed.state,
-          p_result: changed.result,
-        });
-        if (error) throw error;
+        const data = await commitStore(
+          req.db,
+          current,
+          envelope.id,
+          changed,
+          envelope.type,
+        );
         if (!data.conflict) return res.json(data);
       }
       res
