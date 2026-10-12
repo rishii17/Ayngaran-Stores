@@ -2488,7 +2488,7 @@ td small {
 }
 .purchase-results button {
   padding: 8px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   text-align: left;
 }
@@ -2527,4 +2527,30 @@ td small {
 }
 .hardware-scanner p {
   margin: 8px 0 0;
+}
+
+.quantity-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.quantity-presets button {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  padding: 6px 8px;
+  min-height: 34px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.quantity-presets button[aria-pressed="true"] {
+  background: var(--wine);
+  color: white;
+}
+.quantity-presets button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

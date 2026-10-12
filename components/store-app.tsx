@@ -1073,6 +1073,33 @@ export default function StoreApp() {
                           </div>
                           <strong>{fmt(l.price * l.quantity)}</strong>
                         </div>
+                        <div
+                          className="quantity-presets"
+                          role="group"
+                          aria-label={"Quick quantity for " + l.name}
+                        >
+                          {(l.unit === "g"
+                            ? [250, 500, 1000, 2000]
+                            : ["kg", "litre", "bottle"].includes(l.unit)
+                              ? [0.25, 0.5, 1, 2]
+                              : [1, 2, 3, 4]
+                          ).map((q) => (
+                            <button
+                              key={q}
+                              type="button"
+                              aria-pressed={l.quantity === q}
+                              disabled={q > l.stock}
+                              onClick={() => setQuantity(l.productId, q)}
+                            >
+                              {["litre", "bottle"].includes(l.unit) && q < 1
+                                ? q === 0.25
+                                  ? "¼"
+                                  : "½"
+                                : q}{" "}
+                              {l.unit}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     ))
                   ) : (
