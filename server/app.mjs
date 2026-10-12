@@ -1,5 +1,4 @@
 import express from "express";
-import { scannerService, scannerRoutes } from "./mobile-scanner.mjs";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { createClient } from "@supabase/supabase-js";
@@ -136,8 +135,6 @@ export function createApp() {
       legacyHeaders: false,
     }),
   );
-  const mobileScanner = scannerService();
-  app.use("/api/mobile-scan", scannerRoutes(mobileScanner));
   app.get("/api/health", (_, res) =>
     res.json({
       ok: true,
@@ -173,7 +170,6 @@ export function createApp() {
       next(e);
     }
   });
-  app.use("/api/scanner-pairs", scannerRoutes(mobileScanner, true));
   async function load(req) {
     let { data, error } = await req.db
       .from("ayngaran_stores")

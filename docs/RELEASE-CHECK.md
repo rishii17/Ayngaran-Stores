@@ -82,3 +82,11 @@ Supplier invoices now support up to 500 distinct product lines, quantities, unit
 The calculator displays steps and operand counts, shares keyboard/button logic, ignores repeated equals and prevents POS shortcuts from replacing the open dialog. It calculates left to right and rounds to two decimal places.
 
 Validation: 31 automated tests passed; production build and TypeScript passed; all three browser suites passed, including multi-product saving/reloading and mixed keyboard/button calculations. npm audit reported zero vulnerabilities. Browser checks use sample mode; live owner acceptance and physical hardware checks above remain applicable.
+
+## Restore normal app and hardware scanner workflow
+
+Removed the separate mobile-scanner page, pairing server/routes, phone components, install manifest/icons, mobile diagnostics and local HTTPS scripts. Normal startup is `npm run dev` at `http://localhost:3000`.
+
+POS and supplier purchases now have a dedicated Hardware scanner input. Keyboard/HID scanner output terminated by Enter adds one unit, retains focus and reports unknown codes without fuzzy matching or submitting a bill/purchase. USB keyboard scanners and Ethernet devices with vendor keyboard-output software are supported by this input; direct TCP/UDP Ethernet scanner protocols require a model-specific integration and are not claimed as implemented.
+
+Verified: 33 automated tests, production build, TypeScript and five browser suites passed. Tests include repeated hardware-style scans, UPC/EAN equivalence, unknown-code rejection, focus retention, multi-product purchase saving, camera formats, calculator controls and HTTP 404 for the removed phone page/manifest. Physical scanner verification remains pending until a device is selected. No live store records were changed. Existing local certificate files remain ignored and were not deleted.

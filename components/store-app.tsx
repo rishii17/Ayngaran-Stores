@@ -47,7 +47,7 @@ import {
 import ProductArt, { GaneshMark } from "./product-art";
 import Scanner from "./scanner";
 import { findProductByCode } from "../lib/product-code.mjs";
-import PhonePair from "./phone-pair";
+import HardwareScanner from "./hardware-scanner";
 import { authErrorMessage } from "../lib/auth-error.mjs";
 import PurchaseForm from "./purchase-form";
 import QuickCalculator from "./quick-calculator";
@@ -832,26 +832,22 @@ export default function StoreApp() {
           {page === "Point of sale" && (
             <div className="pos-layout">
               <section className="catalog">
-                {mode === "live" && (
-                  <PhonePair
-                    target="bill"
-                    enabled={!modal}
-                    onCode={(value) => {
-                      const p = findProductByCode(state.products, value);
-                      if (!p)
-                        return "No matching product; check the desktop catalog.";
-                      if (
-                        p.stock <
-                        1 +
-                          (cart.find((l) => l.productId === p.id)?.quantity ||
-                            0)
-                      )
-                        return "Not added: insufficient stock.";
-                      addProduct(p);
-                      return `${p.name}: scan processed on desktop. Review bill quantity.`;
-                    }}
-                  />
-                )}
+                <HardwareScanner
+                  disabled={Boolean(modal) || busy}
+                  onCode={(value) => {
+                    const p = findProductByCode(state.products, value);
+                    if (!p)
+                      return "No matching product; check the desktop catalog.";
+                    if (
+                      p.stock <
+                      1 +
+                        (cart.find((l) => l.productId === p.id)?.quantity || 0)
+                    )
+                      return "Not added: insufficient stock.";
+                    addProduct(p);
+                    return `${p.name} added to bill.`;
+                  }}
+                />
 
                 <div className="catalog-tools">
                   <div className="search-box">
@@ -2782,7 +2778,6 @@ export default function StoreApp() {
           )}
           {modal === "purchase" && (
             <PurchaseForm
-              live={mode === "live"}
               products={state.products}
               suppliers={state.suppliers}
               busy={busy}

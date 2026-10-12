@@ -141,6 +141,14 @@ If using production mode, use `npm run build` followed by `npm start` instead. N
 
 Supplier purchases support multiple product lines and camera barcode/QR scanning. Use **Scan barcode / QR** for each item, or focus **Find products** for a USB/Bluetooth scanner that types a code and Enter. Repeated scans increase quantity. Store the exact QR content in the product's Barcode field; SKU and product ID also match in purchases. QR decoding does not convert arbitrary payment links or website addresses into products. Camera support and readability depend on device/browser and lighting.
 
-## Mobile scanner app
+## Hardware barcode scanners
 
-Installable Android/iPhone scanner: `/mobile-scanner`. In a signed-in live store, choose **Connect phone scanner** on POS or Record purchase, then scan the pairing QR with your phone. Scans arrive in that draft with desktop confirmation; the phone cannot finalize sales or read customer accounts. Both devices must use the same reachable HTTPS site. Localhost-only operation is not a phone deployment. See [mobile scanner setup and limitations](docs/MOBILE-SCANNER.md).
+The separate mobile scanner and pairing server have been removed. Start normally with `npm run dev` and open `http://localhost:3000`. No phone pairing, Wi-Fi firewall rule or local HTTPS certificate is required for a hardware scanner.
+
+Use the **Hardware scanner** input in POS or Record purchase. Configure your scanner as a keyboard/HID device (or use the manufacturer's keyboard-output software) with **Enter/CR** as its suffix. Click the input once, then scan repeatedly. Each valid code adds one unit, preserves leading zeroes, and keeps focus for the next scan. Unknown codes are reported without adding a fuzzy search match. Enter never completes a bill or saves a purchase from this input.
+
+An Ethernet-only TCP/UDP scanner does not automatically type into a browser. It requires a compatible vendor bridge that outputs keystrokes, or a model-specific integration. Do not assume that plugging an Ethernet scanner into a router is enough. Test it in Notepad: it should type the complete code and move to the next line. Select the keyboard layout matching Windows and disable custom prefixes. QR-capable hardware can submit a saved product code in the same way.
+
+The existing camera scanner, multi-product purchases, product-price history and calculator keyboard controls remain available. Historical valid UPC/EAN leading-zero differences are supported.
+
+Optional cleanup on your Windows computer: remove the old firewall rule with `Remove-NetFirewallRule -DisplayName "Ayngaran POS - Local WiFi"` in administrator PowerShell if it was only for the phone scanner. Remove the old home-screen shortcut and local CA trust if unused. Local certificate files remain ignored by Git and are not deleted automatically.
