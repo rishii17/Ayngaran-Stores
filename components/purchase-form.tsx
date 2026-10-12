@@ -2,6 +2,7 @@
 import { useMemo, useRef, useState } from "react";
 import { searchIndex, searchItems } from "../lib/search.mjs";
 import Scanner from "./scanner";
+import { findProductByCode } from "../lib/product-code.mjs";
 import PhonePair from "./phone-pair";
 import { money } from "../lib/domain.mjs";
 export default function PurchaseForm({
@@ -69,13 +70,7 @@ export default function PurchaseForm({
   }
   function scanned(value: string) {
     const code = value.trim();
-    const product = products.find(
-      (p) =>
-        p.active !== false &&
-        (p.barcode === code ||
-          p.sku?.toLowerCase() === code.toLowerCase() ||
-          p.id === code),
-    );
+    const product = findProductByCode(products, code);
     setScanning(false);
     if (product) {
       add(product);
@@ -97,13 +92,7 @@ export default function PurchaseForm({
           target="purchase"
           enabled={!busy && !scanning}
           onCode={(value) => {
-            const p = products.find(
-              (p) =>
-                p.active !== false &&
-                (p.barcode === value ||
-                  p.sku?.toLowerCase() === value.toLowerCase() ||
-                  p.id === value),
-            );
+            const p = findProductByCode(products, value);
             if (!p)
               return "No matching product; save its code on desktop first.";
             add(p);
@@ -180,13 +169,7 @@ export default function PurchaseForm({
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  const exact = products.find(
-                    (p) =>
-                      p.active !== false &&
-                      (p.barcode === query.trim() ||
-                        p.sku?.toLowerCase() === query.trim().toLowerCase() ||
-                        p.id === query.trim()),
-                  );
+                  const exact = findProductByCode(products, query);
                   if (exact) add(exact);
                   else if (results[0]) add(results[0]);
                   else

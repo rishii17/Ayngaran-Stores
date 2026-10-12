@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import ProductArt, { GaneshMark } from "./product-art";
 import Scanner from "./scanner";
+import { findProductByCode } from "../lib/product-code.mjs";
 import PhonePair from "./phone-pair";
 import { authErrorMessage } from "../lib/auth-error.mjs";
 import PurchaseForm from "./purchase-form";
@@ -454,10 +455,7 @@ export default function StoreApp() {
       );
   }
   function scan(value: string) {
-    const product = state.products.find(
-      (p: any) =>
-        p.barcode === value || p.sku.toLowerCase() === value.toLowerCase(),
-    );
+    const product = findProductByCode(state.products, value);
     setModal("");
     if (product) {
       addProduct(product);
@@ -839,13 +837,7 @@ export default function StoreApp() {
                     target="bill"
                     enabled={!modal}
                     onCode={(value) => {
-                      const p = state.products.find(
-                        (p: any) =>
-                          p.active !== false &&
-                          (p.barcode === value ||
-                            p.sku?.toLowerCase() === value.toLowerCase() ||
-                            p.id === value),
-                      );
+                      const p = findProductByCode(state.products, value);
                       if (!p)
                         return "No matching product; check the desktop catalog.";
                       if (
@@ -871,10 +863,9 @@ export default function StoreApp() {
                       onChange={(e) => setQuery(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
-                          const exact = state.products.find(
-                            (p: any) =>
-                              p.barcode === query ||
-                              p.sku.toLowerCase() === query.toLowerCase(),
+                          const exact = findProductByCode(
+                            state.products,
+                            query,
                           );
                           if (exact || filteredProducts.length === 1) {
                             addProduct(exact || filteredProducts[0]);

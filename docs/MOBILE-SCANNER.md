@@ -44,3 +44,11 @@ npm run dev:https
 6. If the connection fails, check the IP, server process, firewall, guest-network isolation and certificate trust. If your computer IP changes, generate a certificate containing the new IP. Do not disable browser security or rely on clicking through certificate warnings to enable the camera.
 
 This is a local development setup. `npm start` serves HTTP unless a separate HTTPS reverse proxy is configured. A trusted HTTPS reverse proxy is recommended for permanent use; route the Next app and its `/api` endpoints through the same origin.
+
+## Diagnose a phone that cannot open the page
+
+Keep `npm run dev:https` running, then open a second terminal in the app folder and run `npm run check:mobile`. It prints candidate computer addresses, checks certificate IP coverage/expiry and whether port 3000 is listening. It does not read private keys, change firewall rules or claim to test phone connectivity. Send this output and the exact phone URL/error for further diagnosis. A page that cannot load cannot diagnose itself; camera code changes cannot fix a blocked network port.
+
+For product labels, choose **Product barcode only** in the scanner. The preview now displays the full camera image; leave blank space at both ends of the barcode. Valid UPC-A/EAN representations with leading-zero differences match the same saved product. Decoding a code and matching a catalog entry are separate: a decoded value must still be saved on an active product. Ambiguous matches are rejected.
+
+Barcode regression checks now cover EAN-13 in low contrast, EAN-8, UPC-A, Code128, rotated Code128 and QR via synthetic camera streams, including a browser with QR-only native detection. The decoder retains the full camera resolution up to 1920 pixels and explicitly rotates fallback frames for vertical labels. All 36 domain/API tests, production build and browser suites passed. These checks do not replace testing a physical label and camera, or establish reachability on your Wi-Fi.

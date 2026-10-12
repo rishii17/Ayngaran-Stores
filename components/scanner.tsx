@@ -12,6 +12,7 @@ export default function Scanner({
     lowRef = useRef(false);
   callback.current = onScan;
   const [error, setError] = useState(""),
+    [scanMode, setScanMode] = useState("auto"),
     [code, setCode] = useState(""),
     [torch, setTorch] = useState(false),
     [torchAvailable, setTorchAvailable] = useState(false),
@@ -79,16 +80,53 @@ export default function Scanner({
         element!.srcObject = stream;
         await element!.play();
         const { BrowserMultiFormatReader } = await import("@zxing/browser");
-        const reader = new BrowserMultiFormatReader();
+        const { DecodeHintType, BarcodeFormat } =
+          await import("@zxing/library");
+        const hints = new Map();
+        hints.set(DecodeHintType.TRY_HARDER, true);
+        if (scanMode === "barcode")
+          hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+            BarcodeFormat.EAN_13,
+            BarcodeFormat.EAN_8,
+            BarcodeFormat.UPC_A,
+            BarcodeFormat.UPC_E,
+            BarcodeFormat.CODE_128,
+            BarcodeFormat.CODE_39,
+            BarcodeFormat.CODE_93,
+            BarcodeFormat.ITF,
+            BarcodeFormat.CODABAR,
+            BarcodeFormat.RSS_14,
+            BarcodeFormat.RSS_EXPANDED,
+          ]);
+        if (scanMode === "qr")
+          hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE]);
+        const reader = new BrowserMultiFormatReader(hints);
         let detector: any = null;
         const Native = (window as any).BarcodeDetector;
         if (Native)
           try {
-            const formats = await Native.getSupportedFormats();
-            detector = new Native({ formats });
+            const formats = (await Native.getSupportedFormats()).filter(
+              (f: string) =>
+                scanMode === "barcode"
+                  ? ![
+                      "qr_code",
+                      "aztec",
+                      "data_matrix",
+                      "pdf417",
+                      "unknown",
+                    ].includes(f)
+                  : scanMode === "qr"
+                    ? f === "qr_code"
+                    : f !== "unknown",
+            );
+            if (formats.length) detector = new Native({ formats });
           } catch {}
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d", { willReadFrequently: true })!;
+        const rotated = document.createElement("canvas");
+        const rotatedContext = rotated.getContext("2d", {
+          willReadFrequently: true,
+        })!;
         let frame = 0;
         if (cancelled) return;
         setStatus(
@@ -98,7 +136,7 @@ export default function Scanner({
           if (cancelled) return;
           try {
             if (element!.readyState >= 2 && element!.videoWidth) {
-              const scale = Math.min(1, 1280 / element!.videoWidth);
+              const scale = Math.min(1, 1920 / element!.videoWidth);
               canvas.width = Math.round(element!.videoWidth * scale);
               canvas.height = Math.round(element!.videoHeight * scale);
               context.filter = lowRef.current
@@ -112,10 +150,22 @@ export default function Scanner({
                 } catch {
                   detector = null;
                 }
-              if (!value && (!detector || frame++ % 3 === 0))
+              frame++;
+              if (!value && (!detector || frame % 3 === 0)) {
                 try {
                   value = reader.decodeFromCanvas(canvas).getText();
                 } catch {}
+                if (!value && scanMode !== "qr" && frame % 3 === 0) {
+                  rotated.width = canvas.height;
+                  rotated.height = canvas.width;
+                  rotatedContext.translate(rotated.width, 0);
+                  rotatedContext.rotate(Math.PI / 2);
+                  rotatedContext.drawImage(canvas, 0, 0);
+                  try {
+                    value = reader.decodeFromCanvas(rotated).getText();
+                  } catch {}
+                }
+              }
               if (value && !cancelled) {
                 cancelled = true;
                 stream?.getTracks().forEach((t) => t.stop());
@@ -146,7 +196,7 @@ export default function Scanner({
       trackRef.current = null;
       if (element) element.srcObject = null;
     };
-  }, [camera]);
+  }, [camera, scanMode]);
   async function toggleTorch() {
     try {
       await trackRef.current?.applyConstraints({
@@ -161,12 +211,22 @@ export default function Scanner({
   }
   return (
     <div>
+      <label>
+        Scan type
+        <select value={scanMode} onChange={(e) => setScanMode(e.target.value)}>
+          <option value="auto">Auto: barcode and QR</option>
+          <option value="barcode">Product barcode only</option>
+          <option value="qr">QR only</option>
+        </select>
+      </label>
       <div className="camera-frame">
         <video ref={video} muted playsInline />
         <ScanLine size={64} />
       </div>
       <p className="muted" role="status">
-        {status}. Hold the barcode or QR code steady and fill the guide.
+        {status}. Keep the entire code visible, including blank space at both
+        ends. For product barcodes, select Product barcode only, hold the bars
+        upright and move back until they are sharp.
       </p>
       <div className="scanner-controls">
         <button
