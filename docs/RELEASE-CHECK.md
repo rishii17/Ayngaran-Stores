@@ -72,3 +72,11 @@ npm run test:browser
 `CHROMIUM_PATH` selects the browser executable (default `/usr/bin/chromium`); `POS_TEST_URL` selects the test server (default localhost:3000). Browser tests use isolated sample-mode profiles, never your live data, and write ignored files to `artifacts/`.
 
 Browser checks cover POS village creation/selection, credit billing, customer phone/bill search, account receipt viewing, collections, price history, historic profit, Excel download, the nonempty-store seed guard, mobile overflow and synthetic low-contrast barcode decoding/camera cleanup. Physical camera and printer behavior still requires owner acceptance.
+
+## Supplier purchase and calculator update — 12 October 2026
+
+Supplier invoices now support up to 500 distinct product lines, quantities, unit costs and selling prices, with one payment and payable total. Duplicate additions in the form increase the existing quantity. Validation rejects invalid lines before stock changes; historic single-line purchases remain readable. Excel exports include separate invoice and purchase-item sheets.
+
+The calculator displays steps and operand counts, shares keyboard/button logic, ignores repeated equals and prevents POS shortcuts from replacing the open dialog. It calculates left to right and rounds to two decimal places.
+
+Validation: 31 automated tests passed; production build and TypeScript passed; all three browser suites passed, including multi-product saving/reloading and mixed keyboard/button calculations. npm audit reported zero vulnerabilities. Browser checks use sample mode; live owner acceptance and physical hardware checks above remain applicable.

@@ -45,7 +45,7 @@ Stock views show quantity, cost value, low-stock filters and timestamped movemen
 
 ### Customers, suppliers and reports
 
-Customer and supplier profiles, opening balances, customer credit limits, account ledgers, customer collections and supplier payments. Purchases receive a single product line, update stock/cost and record paid/unpaid amounts against the supplier. Record multiple lines separately when receiving a multi-product supplier invoice, using the same reference.
+Customer and supplier profiles, opening balances, customer credit limits, account ledgers, customer collections and supplier payments. Purchases receive multiple products on one supplier invoice, with quantities, unit costs and selling prices. One payment and outstanding balance cover the complete invoice. Search by name, Tamil, SKU or barcode; Enter adds the first match. Excel backups include invoice summaries and purchase lines.
 
 Dashboard with daily totals, bill count, outstanding customer credit, low stock and a seven-day sales chart. Sales reports include date/customer/bill filters, collections on bills, credit issued, gross profit, separate subsequent collections/payments, receipt reprints and void status. CSV exports, daily Excel workbooks with complete current-store snapshots, and full JSON backup export are included. The JSON export is for data portability; an import/restore UI is not included.
 
@@ -117,3 +117,5 @@ Search products using words in any order or Tamil names, and search POS customer
 Use **Products → Price** to update selling price/cost with a reason. The history records each change. Gross profit on completed sales uses the cost recorded at checkout; later cost changes never rewrite old sale profits. Owner profit displays are kept outside customer printouts.
 
 Use **Settings → Daily Excel backup** for a selected-day report and full current snapshot. Use **Check live connection** for an authenticated health check and **Load dummy data** only for an empty test account. See the release guide for final owner acceptance and hardware checks.
+
+Quick calculator shows calculation steps and operand count. Mouse and keyboard share the same controls: digits, decimal, +, -, *, /, Enter, Backspace and C/Delete. Calculations run left to right, rounded to two decimals; history retains the last 100 steps while open.

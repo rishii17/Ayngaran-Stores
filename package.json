@@ -12,7 +12,7 @@
     "check:env": "node --env-file-if-exists=.env.local scripts/check-env.mjs",
     "seed:generate": "node scripts/generate-seed.mjs",
     "verify": "npm run check:env && npm test && npm run build && npm run typecheck",
-    "test:browser": "node tests/browser/release.mjs && node tests/browser/scanner.mjs",
+    "test:browser": "node tests/browser/release.mjs && node tests/browser/scanner.mjs && node tests/browser/purchase-calculator.mjs",
     "audit:security": "npm audit --audit-level=moderate",
     "prebuild": "node --env-file-if-exists=.env.local scripts/check-env.mjs --allow-missing"
   },

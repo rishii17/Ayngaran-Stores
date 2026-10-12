@@ -66,14 +66,33 @@ const schemas = {
     amount: num.positive(),
     note: text.default(""),
   }),
-  purchase: z.object({
-    supplierId: z.string(),
-    productId: z.string(),
-    quantity: num.positive(),
-    cost: num.positive(),
-    paid: num.nonnegative(),
-    reference: text.default(""),
-  }),
+  purchase: z.union([
+    z.object({
+      supplierId: z.string().min(1),
+      items: z
+        .array(
+          z.object({
+            productId: z.string().min(1),
+            quantity: num.positive(),
+            cost: num.positive(),
+            sellingPrice: num.positive().optional(),
+          }),
+        )
+        .min(1)
+        .max(500),
+      paid: num.nonnegative(),
+      reference: text.default(""),
+    }),
+    z.object({
+      supplierId: z.string().min(1),
+      productId: z.string().min(1),
+      quantity: num.positive(),
+      cost: num.positive(),
+      sellingPrice: num.positive().optional(),
+      paid: num.nonnegative(),
+      reference: text.default(""),
+    }),
+  ]),
   adjust: z.object({
     productId: z.string(),
     quantity: num,

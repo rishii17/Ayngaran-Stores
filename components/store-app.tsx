@@ -46,6 +46,8 @@ import {
 } from "lucide-react";
 import ProductArt, { GaneshMark } from "./product-art";
 import Scanner from "./scanner";
+import PurchaseForm from "./purchase-form";
+import QuickCalculator from "./quick-calculator";
 import CustomerPicker from "./customer-picker";
 import CustomerBills from "./customer-bills";
 import BackupPanel from "./backup-panel";
@@ -240,10 +242,6 @@ export default function StoreApp() {
     [tableQuery, setTableQuery] = useState(""),
     [stockFilter, setStockFilter] = useState("all"),
     [sidebar, setSidebar] = useState(false),
-    [calc, setCalc] = useState("0"),
-    [calcLeft, setCalcLeft] = useState<number | null>(null),
-    [calcOp, setCalcOp] = useState(""),
-    [calcFresh, setCalcFresh] = useState(false),
     [reportDate, setReportDate] = useState(""),
     [reportCustomerId, setReportCustomerId] = useState(""),
     [authMode, setAuthMode] = useState("signin");
@@ -307,6 +305,7 @@ export default function StoreApp() {
   }, []);
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (modal || e.isComposing) return;
       if (e.key === "F2") {
         e.preventDefault();
         setPage("Point of sale");
@@ -319,7 +318,7 @@ export default function StoreApp() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [modal]);
   const close = () => {
     if (!busyRef.current) {
       setModal("");
@@ -545,45 +544,6 @@ export default function StoreApp() {
       setHeldId(null);
       notify("Bill held");
     }
-  }
-  function calcKey(key: string) {
-    if (key === "C") {
-      setCalc("0");
-      setCalcLeft(null);
-      setCalcOp("");
-      setCalcFresh(false);
-      return;
-    }
-    if (key === "⌫") {
-      setCalc(calc.length > 1 ? calc.slice(0, -1) : "0");
-      return;
-    }
-    if (["+", "−", "×", "÷", "="].includes(key)) {
-      let value = Number(calc);
-      if (calcLeft !== null && calcOp) {
-        value =
-          calcOp === "+"
-            ? calcLeft + value
-            : calcOp === "−"
-              ? calcLeft - value
-              : calcOp === "×"
-                ? calcLeft * value
-                : value === 0
-                  ? NaN
-                  : calcLeft / value;
-        setCalc(Number.isFinite(value) ? String(money(value)) : "Error");
-      }
-      setCalcLeft(key === "=" ? null : value);
-      setCalcOp(key === "=" ? "" : key);
-      setCalcFresh(true);
-      return;
-    }
-    setCalc((prev) => {
-      const start = calcFresh || prev === "Error" ? "0" : prev;
-      setCalcFresh(false);
-      if (key === "." && start.includes(".")) return start;
-      return start === "0" && key !== "." ? key : start + key;
-    });
   }
   const productIndex = useMemo(
     () =>
@@ -1713,12 +1673,18 @@ export default function StoreApp() {
                               }
                             </td>
                             <td>
-                              {
-                                state.products.find(
-                                  (x: any) => x.id === p.productId,
-                                )?.name
-                              }{" "}
-                              × {p.quantity}
+                              {(p.items || [p]).map((line: any) => (
+                                <div key={line.productId}>
+                                  {line.name ||
+                                    state.products.find(
+                                      (x: any) => x.id === line.productId,
+                                    )?.name}{" "}
+                                  × {line.quantity} · cost {fmt(line.cost)}
+                                  {line.sellingPrice != null
+                                    ? ` / sell ${fmt(line.sellingPrice)}`
+                                    : ""}
+                                </div>
+                              ))}
                             </td>
                             <td>{fmt(p.total)}</td>
                             <td>{fmt(p.paid)}</td>
@@ -2078,7 +2044,9 @@ export default function StoreApp() {
             )[modal] || modal
           }
           close={close}
-          wide={modal === "product" || modal === "ledger"}
+          wide={
+            modal === "product" || modal === "ledger" || modal === "purchase"
+          }
         >
           {error && (
             <div className="alert" role="alert">
@@ -2487,46 +2455,7 @@ export default function StoreApp() {
               </p>
             </div>
           )}
-          {modal === "calculator" && (
-            <div>
-              <div className="calc-display">
-                <small>
-                  {calcLeft !== null ? `${calcLeft} ${calcOp}` : " "}
-                </small>
-                <strong>{calc}</strong>
-              </div>
-              <div className="calc-grid">
-                {[
-                  "C",
-                  "⌫",
-                  "÷",
-                  "×",
-                  "7",
-                  "8",
-                  "9",
-                  "−",
-                  "4",
-                  "5",
-                  "6",
-                  "+",
-                  "1",
-                  "2",
-                  "3",
-                  "=",
-                  "0",
-                  ".",
-                ].map((key) => (
-                  <button
-                    className={key === "=" ? "equals" : ""}
-                    key={key}
-                    onClick={() => calcKey(key)}
-                  >
-                    {key}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {modal === "calculator" && <QuickCalculator />}
           {modal === "held" && (
             <div>
               {state.held.map((h: any) => (
@@ -2832,91 +2761,15 @@ export default function StoreApp() {
             </form>
           )}
           {modal === "purchase" && (
-            <form onSubmit={submitForm}>
-              <Field label="Supplier *">
-                <select
-                  value={form.supplierId}
-                  onChange={(e) => update("supplierId", e.target.value)}
-                  required
-                >
-                  <option value="">Select supplier</option>
-                  {state.suppliers.map((s: any) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Product *">
-                <select
-                  value={form.productId}
-                  onChange={(e) => {
-                    update("productId", e.target.value);
-                    update(
-                      "cost",
-                      state.products.find((p: any) => p.id === e.target.value)
-                        ?.cost || 0,
-                    );
-                  }}
-                  required
-                >
-                  <option value="">Select product</option>
-                  {state.products.map((p: any) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <div className="form-grid">
-                <Field label="Quantity *">
-                  <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={form.quantity}
-                    onChange={(e) => update("quantity", Number(e.target.value))}
-                    required
-                  />
-                </Field>
-                <Field label="Cost per unit (LKR) *">
-                  <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={form.cost}
-                    onChange={(e) => update("cost", Number(e.target.value))}
-                    required
-                  />
-                </Field>
-              </div>
-              <div className="payment-balance">
-                <span>Purchase total</span>
-                <strong>Rs. {fmt(form.quantity * form.cost)}</strong>
-              </div>
-              <Field label="Paid now (LKR)">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  max={form.quantity * form.cost}
-                  value={form.paid}
-                  onChange={(e) => update("paid", Number(e.target.value))}
-                />
-              </Field>
-              <Field label="Supplier invoice / reference">
-                <input
-                  value={form.reference}
-                  onChange={(e) => update("reference", e.target.value)}
-                />
-              </Field>
-              <p className="muted">
-                Unpaid amounts are added to the supplier’s balance.
-              </p>
-              <button className="primary wide" disabled={busy}>
-                Save purchase & receive stock
-              </button>
-            </form>
+            <PurchaseForm
+              products={state.products}
+              suppliers={state.suppliers}
+              busy={busy}
+              onSave={async (payload) => {
+                const result = await act("purchase", payload);
+                if (result) close();
+              }}
+            />
           )}
           {modal === "account" && (
             <div>

@@ -2459,3 +2459,51 @@ td small {
   padding-top: 12px;
   font-size: 11px;
 }
+
+.purchase-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.purchase-fields .field {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.purchase-fields input,
+.purchase-fields select {
+  width: 100%;
+}
+.purchase-fields td input {
+  min-width: 88px;
+}
+.purchase-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 160px;
+  overflow: auto;
+  margin-bottom: 20px;
+}
+.purchase-results button {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-align: left;
+}
+.purchase-results small {
+  display: block;
+  opacity: 0.65;
+}
+.calculator-history {
+  max-height: 150px;
+  overflow: auto;
+  padding: 12px;
+  background: #f6f2eb;
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.calculator-history div {
+  padding: 4px;
+}
