@@ -2,13 +2,16 @@
 import { useMemo, useRef, useState } from "react";
 import { searchIndex, searchItems } from "../lib/search.mjs";
 import Scanner from "./scanner";
+import PhonePair from "./phone-pair";
 import { money } from "../lib/domain.mjs";
 export default function PurchaseForm({
+  live = false,
   products,
   suppliers,
   busy,
   onSave,
 }: {
+  live?: boolean;
   products: any[];
   suppliers: any[];
   busy: boolean;
@@ -89,6 +92,25 @@ export default function PurchaseForm({
   }
   return (
     <>
+      {live && (
+        <PhonePair
+          target="purchase"
+          enabled={!busy && !scanning}
+          onCode={(value) => {
+            const p = products.find(
+              (p) =>
+                p.active !== false &&
+                (p.barcode === value ||
+                  p.sku?.toLowerCase() === value.toLowerCase() ||
+                  p.id === value),
+            );
+            if (!p)
+              return "No matching product; save its code on desktop first.";
+            add(p);
+            return `${p.name} added to purchase.`;
+          }}
+        />
+      )}
       {scanning && (
         <section aria-label="Purchase barcode and QR scanner">
           <button

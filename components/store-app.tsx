@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import ProductArt, { GaneshMark } from "./product-art";
 import Scanner from "./scanner";
+import PhonePair from "./phone-pair";
 import { authErrorMessage } from "../lib/auth-error.mjs";
 import PurchaseForm from "./purchase-form";
 import QuickCalculator from "./quick-calculator";
@@ -833,6 +834,33 @@ export default function StoreApp() {
           {page === "Point of sale" && (
             <div className="pos-layout">
               <section className="catalog">
+                {mode === "live" && (
+                  <PhonePair
+                    target="bill"
+                    enabled={!modal}
+                    onCode={(value) => {
+                      const p = state.products.find(
+                        (p: any) =>
+                          p.active !== false &&
+                          (p.barcode === value ||
+                            p.sku?.toLowerCase() === value.toLowerCase() ||
+                            p.id === value),
+                      );
+                      if (!p)
+                        return "No matching product; check the desktop catalog.";
+                      if (
+                        p.stock <
+                        1 +
+                          (cart.find((l) => l.productId === p.id)?.quantity ||
+                            0)
+                      )
+                        return "Not added: insufficient stock.";
+                      addProduct(p);
+                      return `${p.name}: scan processed on desktop. Review bill quantity.`;
+                    }}
+                  />
+                )}
+
                 <div className="catalog-tools">
                   <div className="search-box">
                     <Search size={20} />
@@ -2763,6 +2791,7 @@ export default function StoreApp() {
           )}
           {modal === "purchase" && (
             <PurchaseForm
+              live={mode === "live"}
               products={state.products}
               suppliers={state.suppliers}
               busy={busy}
