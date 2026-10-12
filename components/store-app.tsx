@@ -945,8 +945,15 @@ export default function StoreApp() {
                       </div>
                       <div className="product-info">
                         <span className="product-category">{p.category}</span>
-                        <h3>{p.name}</h3>
-                        <span className="tamil">{p.tamil || p.sku}</span>
+                        <h3 title={p.tamil ? `${p.name} / ${p.tamil}` : p.name}>
+                          {p.name}
+                          {p.tamil && (
+                            <>
+                              {" "}
+                              / <span lang="ta">{p.tamil}</span>
+                            </>
+                          )}
+                        </h3>
                         <div className="product-bottom">
                           <strong>
                             <small>Rs.</small> {fmt(p.price)}
@@ -1034,7 +1041,17 @@ export default function StoreApp() {
                     lines.map((l: any) => (
                       <div className="bill-item" key={l.productId}>
                         <div className="bill-item-top">
-                          <strong>{l.name}</strong>
+                          <strong
+                            title={l.tamil ? `${l.name} / ${l.tamil}` : l.name}
+                          >
+                            {l.name}
+                            {l.tamil && (
+                              <>
+                                {" "}
+                                / <span lang="ta">{l.tamil}</span>
+                              </>
+                            )}
+                          </strong>
                           <button
                             aria-label={"Remove " + l.name}
                             onClick={() => setQuantity(l.productId, 0)}
@@ -3188,7 +3205,15 @@ function Receipt({
           {sale.items.map((l: any) => (
             <tr key={l.productId}>
               <td>
-                {l.name}
+                <span>
+                  {l.name}
+                  {l.tamil && (
+                    <>
+                      {" "}
+                      / <span lang="ta">{l.tamil}</span>
+                    </>
+                  )}
+                </span>
                 <small>
                   {fmt(l.price)} / {l.unit}
                 </small>
