@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k \"next dev --hostname 0.0.0.0\" \"node --env-file-if-exists=.env.local --watch server/index.mjs\"",
+    "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
-    "start": "concurrently -k \"next start --hostname 0.0.0.0\" \"node --env-file-if-exists=.env.local server/index.mjs\"",
+    "start": "next start --hostname 0.0.0.0",
     "test": "node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "check:env": "node --env-file-if-exists=.env.local scripts/check-env.mjs",

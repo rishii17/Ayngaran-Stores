@@ -15,7 +15,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3000. Next.js forwards `/api/*` to Express on `127.0.0.1:4000`. Both processes start together. `API_PORT` is for the API process; the Next.js rewrite uses the same `API_PORT` setting.
+Open http://localhost:3000. Next.js serves `/api/*` through the existing Express app in the same Node process. A separate port-4000 server is no longer required. `API_PORT` applies only if running `server/index.mjs` separately.
 
 The selected project is Ayngaran Stores. Configure `.env.local` from `.env.example` using that project's active publishable key. The new project's key and database setup have not yet been verified in this workspace. No service-role key is needed.
 
@@ -152,3 +152,10 @@ An Ethernet-only TCP/UDP scanner does not automatically type into a browser. It 
 The existing camera scanner, multi-product purchases, product-price history and calculator keyboard controls remain available. Historical valid UPC/EAN leading-zero differences are supported.
 
 Optional cleanup on your Windows computer: remove the old firewall rule with `Remove-NetFirewallRule -DisplayName "Ayngaran POS - Local WiFi"` in administrator PowerShell if it was only for the phone scanner. Remove the old home-screen shortcut and local CA trust if unused. Local certificate files remain ignored by Git and are not deleted automatically.
+
+
+## Hosting and product-save availability
+
+Deploy as a Next.js application with Node.js API support, not a static export. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in the hosting environment before building. Build with `npm run build`; on a Node server start with `npm start`. On managed Next.js hosting use its normal Next.js deployment settings.
+
+After deploying, open `/api/health` on the website: it must return JSON with `ok: true`. `/api/state` without signing in must return a JSON 401 response. A 404 or HTML page means the API deployment is missing; a 502/503 usually means the host failed to start the server. Product creation and all other mutations still require a verified Supabase user and owner-scoped database permissions.

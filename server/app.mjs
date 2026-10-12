@@ -133,6 +133,9 @@ export function createApp() {
       limit: 180,
       standardHeaders: "draft-8",
       legacyHeaders: false,
+      // Next adds forwarded headers. Keep socket-based limiting rather than
+      // trusting client-supplied forwarding headers on arbitrary hosts.
+      validate: { xForwardedForHeader: false },
     }),
   );
   app.get("/api/health", (_, res) =>

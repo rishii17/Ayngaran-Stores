@@ -20,9 +20,11 @@ export async function api(path: string, options: RequestInit = {}) {
       ...options.headers,
     },
   });
-  const data = await res
-    .json()
-    .catch(() => ({ error: "The server is unavailable. Please retry." }));
+  const data = await res.json().catch(() => {
+    throw Error(
+      `The save server returned an invalid response (HTTP ${res.status}). Check that the website API is deployed and running, then retry.`,
+    );
+  });
   if (!res.ok) throw Error(data.error || "Unable to save. Please retry.");
   return data;
 }
