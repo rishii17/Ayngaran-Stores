@@ -119,3 +119,22 @@ Use **Products → Price** to update selling price/cost with a reason. The histo
 Use **Settings → Daily Excel backup** for a selected-day report and full current snapshot. Use **Check live connection** for an authenticated health check and **Load dummy data** only for an empty test account. See the release guide for final owner acceptance and hardware checks.
 
 Quick calculator shows calculation steps and operand count. Mouse and keyboard share the same controls: digits, decimal, +, -, *, /, Enter, Backspace and C/Delete. Calculations run left to right, rounded to two decimals; history retains the last 100 steps while open.
+
+### Account creation: “Invalid API key” on a local computer
+
+Open **Grocery POS → Settings → API Keys** in Supabase. Copy its active **publishable** key (starts with `sb_publishable_`) into `.env.local` in the app folder, beside `package.json`:
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=https://izvbuaojkopzbwujrups.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=replace_with_the_actual_publishable_key
+API_PORT=4000
+```
+
+Do not copy a secret/service-role key or leave the example placeholder. `.env.local` stays on your computer and is intentionally excluded from GitHub. Stop the app with Ctrl+C and run:
+
+```bash
+npm run check:auth
+npm run dev
+```
+
+If using production mode, use `npm run build` followed by `npm start` instead. Next.js embeds public keys at build time, so restarting an old production build does not update them. Reload the browser after restarting. `check:auth` makes a read-only Auth request without creating a user or sending email; it distinguishes a rejected key from a network failure.

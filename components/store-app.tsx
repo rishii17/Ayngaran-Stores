@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import ProductArt, { GaneshMark } from "./product-art";
 import Scanner from "./scanner";
+import { authErrorMessage } from "../lib/auth-error.mjs";
 import PurchaseForm from "./purchase-form";
 import QuickCalculator from "./quick-calculator";
 import CustomerPicker from "./customer-picker";
@@ -2842,7 +2843,7 @@ export default function StoreApp() {
                           "Check your email to confirm your account, then sign in.",
                         );
                     } catch (e: any) {
-                      setError(e.message);
+                      setError(authErrorMessage(e));
                     } finally {
                       setBusy(false);
                     }
