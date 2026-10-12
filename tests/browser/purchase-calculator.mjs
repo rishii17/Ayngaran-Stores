@@ -33,6 +33,15 @@ try {
   const search = page.getByLabel("Find products");
   await search.fill("samba");
   await search.press("Enter");
+  await page
+    .getByRole("button", { name: "Scan barcode / QR", exact: true })
+    .click();
+  await page.getByLabel("Or enter a barcode / QR value").fill("AYS-001");
+  await page.getByRole("button", { name: "Find product", exact: true }).click();
+  assert.equal(
+    await page.getByLabel("Samba Rice quantity", { exact: true }).inputValue(),
+    "2",
+  );
   await search.fill("red raw");
   await search.press("Enter");
   await page.getByLabel("Samba Rice quantity", { exact: true }).fill("2");

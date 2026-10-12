@@ -138,3 +138,5 @@ npm run dev
 ```
 
 If using production mode, use `npm run build` followed by `npm start` instead. Next.js embeds public keys at build time, so restarting an old production build does not update them. Reload the browser after restarting. `check:auth` makes a read-only Auth request without creating a user or sending email; it distinguishes a rejected key from a network failure.
+
+Supplier purchases support multiple product lines and camera barcode/QR scanning. Use **Scan barcode / QR** for each item, or focus **Find products** for a USB/Bluetooth scanner that types a code and Enter. Repeated scans increase quantity. Store the exact QR content in the product's Barcode field; SKU and product ID also match in purchases. QR decoding does not convert arbitrary payment links or website addresses into products. Camera support and readability depend on device/browser and lighting.

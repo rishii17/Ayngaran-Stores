@@ -166,7 +166,7 @@ export default function Scanner({
         <ScanLine size={64} />
       </div>
       <p className="muted" role="status">
-        {status}. Hold the barcode steady and fill the guide.
+        {status}. Hold the barcode or QR code steady and fill the guide.
       </p>
       <div className="scanner-controls">
         <button
@@ -239,7 +239,7 @@ export default function Scanner({
         }}
       >
         <label>
-          Or enter a barcode
+          Or enter a barcode / QR value
           <input
             value={code}
             onChange={(e) => setCode(e.target.value)}
