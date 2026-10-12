@@ -17,7 +17,7 @@ npm run dev
 
 Open http://localhost:3000. Next.js forwards `/api/*` to Express on `127.0.0.1:4000`. Both processes start together. `API_PORT` is for the API process; the Next.js rewrite uses the same `API_PORT` setting.
 
-The current workspace already has an ignored `.env.local` configured with Grocery POS's URL and publishable key. No service-role key is needed or used. On a new computer, configure your own `.env.local` from `.env.example`.
+The selected project is Ayngaran Stores. Configure `.env.local` from `.env.example` using that project's active publishable key. The new project's key and database setup have not yet been verified in this workspace. No service-role key is needed.
 
 ## Sample and live workspaces
 
@@ -55,16 +55,16 @@ Calculator, responsive mobile layout with a jump-to-bill button, thermal receipt
 
 ## Supabase setup
 
-Project: **Grocery POS** (`izvbuaojkopzbwujrups`). This implementation created only:
+Project: **Ayngaran Stores** (`uoddttvmpqkojdwofcxr`). The application requires these database objects:
 
 - `public.ayngaran_stores`
 - `public.ayngaran_requests`
 - `public.ayngaran_commit(...)`
 - `public.ayngaran_seed_templates` (dummy reference data only)
 
-Existing `pos_shops`, `pos_receipts` and `pos_*` functions were left untouched.
+The setup scripts do not modify unrelated tables.
 
-`supabase/schema.sql` contains the initial schema that was applied. For a fresh project, run it once, followed by `supabase/seed-template-schema.sql` and `supabase/dummy-data.sql`, in the Supabase SQL editor, enable email authentication and set the Auth Site URL to your application origin. Do not blindly rerun it on the configured project: the policies already exist.
+`supabase/schema.sql` contains the required initial schema. For a fresh project, run it once, followed by `supabase/seed-template-schema.sql` and `supabase/dummy-data.sql`, in the Supabase SQL editor, enable email authentication and set the Auth Site URL to your application origin. If the tables and policies already exist, inspect their configuration before rerunning the initial schema.
 
 RLS restricts every row to its authenticated owner. Anonymous table access and commit execution are revoked. The commit function is SECURITY INVOKER with an empty search path. Express validates the JWT with `auth.getUser`, executes with the caller's JWT and uses optimistic revision checks plus a row lock and unique request IDs to avoid lost updates and duplicate committed retries. It retries revision conflicts up to five times.
 
@@ -122,10 +122,10 @@ Quick calculator shows calculation steps and operand count. Mouse and keyboard s
 
 ### Account creation: “Invalid API key” on a local computer
 
-Open **Grocery POS → Settings → API Keys** in Supabase. Copy its active **publishable** key (starts with `sb_publishable_`) into `.env.local` in the app folder, beside `package.json`:
+Open **Ayngaran Stores → Settings → API Keys** in Supabase. Copy its active **publishable** key (starts with `sb_publishable_`) into `.env.local` in the app folder, beside `package.json`:
 
 ```dotenv
-NEXT_PUBLIC_SUPABASE_URL=https://izvbuaojkopzbwujrups.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://uoddttvmpqkojdwofcxr.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=replace_with_the_actual_publishable_key
 API_PORT=4000
 ```

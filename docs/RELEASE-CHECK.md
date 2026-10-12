@@ -1,3 +1,5 @@
+> Project switch: Ayngaran Stores (`uoddttvmpqkojdwofcxr`) is now the target. Cloud checks described below are historical checks against the previous project; they do not verify this new project. A matching public key and project access are still required.
+
 # Final verification — 12 October 2026
 
 Verified locally: **29 automated tests**, production build, TypeScript checks and both browser suites passed. The full dependency audit reported **zero vulnerabilities**.
@@ -5,7 +7,7 @@ Verified locally: **29 automated tests**, production build, TypeScript checks an
 ## Delivered
 
 - Next.js frontend and Express API use the ignored `.env.local` Supabase configuration. `npm run check:env` validates the URL and public client key without printing values or accepting service-role/secret keys in the browser.
-- Grocery POS contains a separate authenticated-read-only dummy template with 16 products, three customers, two suppliers, seven sales, one purchase and one customer collection. Load it from Settings after signing into an **empty** owner store. Existing trading records cannot be replaced by the seed action.
+- The repository includes a separate authenticated-read-only dummy template with 16 products, three customers, two suppliers, seven sales, one purchase and one customer collection. Load it from Settings after signing into an **empty** owner store. Existing trading records cannot be replaced by the seed action.
 - Daily Excel download contains a selected-day summary and sales, complete transaction history, current products/customer/supplier balances, stock movements, price history, villages and a recoverable full JSON snapshot. Date grouping uses Asia/Colombo. Current balances and stock are explicitly labelled as current, not historical day-end balances. Download manually at day-end; no unattended scheduled job is implied.
 - Product search matches words in any order, Tamil text, SKU and barcode, with exact matches ranked first. POS customer search supports name, phone (with or without spaces), code, ID and village. A customer added at POS is immediately selected.
 - Villages: A Division, B Division, 12 Ekar, KR division, Hopton, Millabedha; custom villages are optional and saved for reuse.
@@ -35,9 +37,9 @@ npm run verify
 npm start
 ```
 
-Open `http://localhost:3000`. The current cloud workspace already has its ignored `.env.local` configured. On another computer, take the publishable key from Grocery POS → Project settings → API. Never use a secret/service-role key for `NEXT_PUBLIC_*`.
+Open `http://localhost:3000`. The selected project has changed; its publishable key must be configured in the ignored `.env.local`. On another computer, take the publishable key from Ayngaran Stores → Project settings → API. Never use a secret/service-role key for `NEXT_PUBLIC_*`.
 
-The existing Grocery POS database already contains the schema and seed template. For a fresh project, run these SQL files in order once:
+Database setup in the newly selected Ayngaran Stores project has not yet been verified. For a fresh project, run these SQL files in order once:
 
 1. `supabase/schema.sql`
 2. `supabase/seed-template-schema.sql`
