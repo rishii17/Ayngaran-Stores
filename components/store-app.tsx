@@ -50,6 +50,7 @@ import { findProductByCode } from "../lib/product-code.mjs";
 import HardwareScanner from "./hardware-scanner";
 import { authErrorMessage } from "../lib/auth-error.mjs";
 import PurchaseForm from "./purchase-form";
+import PurchaseComparison from "./purchase-comparison";
 import QuickCalculator from "./quick-calculator";
 import CustomerPicker from "./customer-picker";
 import CustomerBills from "./customer-bills";
@@ -1611,6 +1612,9 @@ export default function StoreApp() {
                     Record purchase
                   </button>
                 </div>
+              )}
+              {page === "Suppliers" && (
+                <PurchaseComparison products={state.products} suppliers={state.suppliers} purchases={state.purchases} />
               )}
               <section className="panel">
                 <div className="table-toolbar">

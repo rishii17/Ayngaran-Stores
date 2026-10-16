@@ -2554,3 +2554,9 @@ td small {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.comparison-note {
+  margin: 0;
+  padding: 12px 20px;
+  font-size: 13px;
+}

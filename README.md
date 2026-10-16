@@ -164,3 +164,9 @@ After deploying, open `/api/health` on the website: it must return JSON with `ok
 ## Recommended database upgrade
 
 Use the [relational architecture and migration guide](docs/DATABASE-ARCHITECTURE.md) to upgrade the two-table store without changing the billing workflow. The migration creates 16 business tables, preserves existing data, and adds owner-protected balance and daily-sales views. Deploying code alone does not migrate the database.
+
+### Compare supplier buying costs
+
+On **Suppliers → Compare buying costs**, search a product name, brand saved in its name, SKU, barcode, or supplier company. For example, save products as “Alpha Chilli Powder 100g” and “Beta Chilli Powder 100g”; searching “chilli” shows both. Each supplier has a separate row showing their latest recorded buying cost. Expand **Previous purchases** to see older costs and invoice numbers. Products without purchases show their current catalogue cost, clearly labelled.
+
+Sort by buying cost or potential margin to plan restocking. Margin is `(current selling price − buying cost) / current selling price × 100`; compare the same pack sizes and units, and allow for tax, discounts, other expenses and updated supplier quotes. This comparison does not change inventory or prices.
