@@ -44,6 +44,7 @@ await p
   .getByPlaceholder("Search bill, sale ID, customer, phone or village")
   .fill("0771122445");
 await p.getByRole("main").getByText("AYS-00001", { exact: true }).waitFor();
+await p.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 await p.getByRole("button", { name: "Customers", exact: true }).click();
 const row = p.getByRole("row").filter({ hasText: "Village Test Buyer" });
 await row.getByRole("button", { name: "View account" }).click();
@@ -58,6 +59,7 @@ await p.getByLabel("Amount (LKR) *").fill("100");
 await p.getByRole("button", { name: "Save payment", exact: true }).click();
 await p.getByRole("dialog").waitFor({ state: "hidden" });
 assert.match(await row.innerText(), /140.00/);
+await p.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 await p.getByRole("button", { name: "Products", exact: true }).click();
 await p
   .getByRole("row")
@@ -69,10 +71,12 @@ await p.getByLabel("New purchase cost (LKR)").fill("250");
 await p.getByLabel("Reason for price update").fill("Supplier price change");
 await p.getByRole("button", { name: "Save price update", exact: true }).click();
 await p.getByText("Supplier price change", { exact: true }).waitFor();
+await p.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 await p.getByRole("button", { name: "Sales & reports", exact: true }).click();
 await p.getByRole("button", { name: "View receipt", exact: true }).click();
 assert.match(await p.locator(".modal .payment-balance").innerText(), /35.00/);
 await p.getByRole("button", { name: "Done", exact: true }).click();
+await p.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 await p.getByRole("button", { name: "Settings", exact: true }).click();
 const dlPromise = p.waitForEvent("download");
 await p
@@ -96,6 +100,7 @@ await p.getByLabel("Type LOAD DUMMY DATA to confirm").fill("LOAD DUMMY DATA");
 await p.getByRole("button", { name: "Load dummy data", exact: true }).click();
 await p.getByRole("alert").filter({ hasText: "empty store" }).waitFor();
 await p.getByRole("button", { name: "Close dialog" }).click();
+await p.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 await p.getByRole("button", { name: "Point of sale", exact: true }).click();
 await p.getByRole("combobox", { name: "Search POS customers" }).fill("hopton");
 await p.getByRole("option", { name: /Village Test Buyer/ }).click();

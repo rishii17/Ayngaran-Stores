@@ -178,3 +178,9 @@ In the **Sample workspace**, click **Load supplier sample list → Add supplier 
 Buying/selling pairs are interpreted as LKR costs and selling prices. The final parentheses are retained as quoted case quantities, not inventory. One fully paid, explicitly labelled sample purchase supplies 12 test units for each of 182 priced entries. Its history is generated for testing and is not a real invoice. Ameens Henna and OBO A4 Laminating Pouch have no supplied selling price and remain inactive with zero stock. Soorya Matches' `(8490)(14400)(720)` is interpreted as cost/selling/case quantity and flagged for review. Conditional bulk-order pricing is preserved in the source text but is not applied automatically. No real barcodes or supplier identity were supplied; barcodes remain empty and the supplier is labelled as sample data. Live stores are unaffected.
 
 Source: `data/supplier-sample-source.txt`; reviewed entries: `data/supplier-sample-products.json`. The imported quote appears in the cost comparison. Treat each cost as applying to its listed unit/pack; do not compare mismatched pack sizes as unit prices.
+
+### Full-width billing and keyboard quantities
+
+The side navigation is closed by default on desktop and mobile, leaving the main area for products and the current bill. Use the menu button to open it; choose a page, press Escape, click outside it, or use its close button to dismiss it.
+
+Click a product or search its SKU/name and press Enter. Its bill quantity is focused and selected automatically: type the required quantity (for example `2.5`) and press **Enter** to save it and return to product search. **Escape** keeps the previous quantity and returns to search. Invalid, empty, or over-stock quantities cannot be committed with Enter. **F2** opens billing and focuses search from another page. Dedicated hardware scanner input keeps focus for repeated scans; each scan still adds one unit.

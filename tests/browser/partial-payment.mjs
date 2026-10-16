@@ -45,6 +45,7 @@ await p
   .getByPlaceholder("Search bill, sale ID, customer, phone or village")
   .fill("0771122445");
 await p.getByRole("main").getByText("AYS-00001", { exact: true }).waitFor();
+await p.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 await p.getByRole("button", { name: "Customers", exact: true }).click();
 const row = p.getByRole("row").filter({ hasText: "Village Test Buyer" });
 await row.getByRole("button", { name: "View account" }).click();

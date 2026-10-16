@@ -54,6 +54,7 @@ try {
     .getByRole("button", { name: "Charge Rs. 480.00", exact: true })
     .waitFor();
   assert.equal(await page.getByRole("dialog").count(), 0);
+  await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
   await page.getByRole("button", { name: "Suppliers", exact: true }).click();
   await page
     .getByRole("button", { name: "Record purchase", exact: true })

@@ -254,6 +254,10 @@ export default function StoreApp() {
     [reportDate, setReportDate] = useState(""),
     [reportCustomerId, setReportCustomerId] = useState(""),
     [authMode, setAuthMode] = useState("signin");
+  const [quantityFocus, setQuantityFocus] = useState({ id: "", sequence: 0 });
+  const [searchFocus, setSearchFocus] = useState(0);
+  const navigationRef = useRef<HTMLElement>(null);
+  const menuRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null),
     stateRef = useRef(state),
     busyRef = useRef(false),
@@ -313,12 +317,50 @@ export default function StoreApp() {
     setReady(true);
   }, []);
   useEffect(() => {
+    if (searchFocus) searchRef.current?.focus();
+  }, [searchFocus]);
+  useEffect(() => {
+    if (!sidebar) return;
+    const panel = navigationRef.current;
+    panel?.querySelector<HTMLButtonElement>("button")?.focus();
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setSidebar(false);
+      }
+      if (event.key === "Tab") {
+        const controls = Array.from(
+          panel?.querySelectorAll<HTMLElement>(
+            "button:not(:disabled), a[href]",
+          ) || [],
+        ).filter((el) => el.getClientRects().length);
+        const first = controls[0],
+          last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKey);
+      menuRef.current?.focus();
+    };
+  }, [sidebar]);
+  useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (modal || e.isComposing) return;
+      if (modal || sidebar || e.isComposing) return;
       if (e.key === "F2") {
         e.preventDefault();
         setPage("Point of sale");
-        searchRef.current?.focus();
+        setSearchFocus((count) => count + 1);
       }
       if (e.key === "F4") {
         e.preventDefault();
@@ -327,7 +369,7 @@ export default function StoreApp() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [modal]);
+  }, [modal, sidebar]);
   const close = () => {
     if (!busyRef.current) {
       setModal("");
@@ -482,7 +524,7 @@ export default function StoreApp() {
     checkoutCredit > 0 &&
     selectedCustomer &&
     checkoutBalance > selectedCustomer.creditLimit;
-  function addProduct(p: any) {
+  function addProduct(p: any, focusQuantity = true) {
     const old = cart.find((l) => l.productId === p.id);
     if ((old?.quantity || 0) + 1 > p.stock) {
       notify(`${p.name}: insufficient stock`);
@@ -497,12 +539,19 @@ export default function StoreApp() {
           )
         : [...cart, { productId: p.id, quantity: 1 }],
     );
+    if (focusQuantity)
+      setQuantityFocus((previous) => ({
+        id: p.id,
+        sequence: previous.sequence + 1,
+      }));
   }
   function setQuantity(id: string, q: number) {
     const product = state.products.find((p: any) => p.id === id);
+    if (!product || !Number.isFinite(q) || q < 0 || money(q) !== q)
+      return false;
     if (q > product.stock) {
       notify(`Only ${product.stock} ${product.unit} available`);
-      return;
+      return false;
     }
     if (q <= 0) setCart(cart.filter((l) => l.productId !== id));
     else
@@ -511,6 +560,7 @@ export default function StoreApp() {
           l.productId === id ? { ...l, quantity: money(q) } : l,
         ),
       );
+    return true;
   }
   function scan(value: string) {
     const product = findProductByCode(state.products, value);
@@ -681,7 +731,30 @@ export default function StoreApp() {
     );
   return (
     <div className="app-shell">
-      <aside className={"sidebar " + (sidebar ? "is-open" : "")}>
+      {sidebar && (
+        <button
+          className="navigation-backdrop"
+          tabIndex={-1}
+          aria-label="Dismiss navigation"
+          onClick={() => setSidebar(false)}
+        />
+      )}
+      <aside
+        ref={navigationRef}
+        id="main-navigation"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Main navigation"
+        hidden={!sidebar}
+        className={"sidebar " + (sidebar ? "is-open" : "")}
+      >
+        <button
+          className="navigation-close icon-button"
+          aria-label="Close navigation"
+          onClick={() => setSidebar(false)}
+        >
+          <X size={20} />
+        </button>
         <a className="brand" href="#" onClick={(e) => e.preventDefault()}>
           <span className="brand-mark">
             <GaneshMark />
@@ -730,7 +803,10 @@ export default function StoreApp() {
           </div>
           <button
             className={"nav-settings " + (page === "Settings" ? "active" : "")}
-            onClick={() => setPage("Settings")}
+            onClick={() => {
+              setPage("Settings");
+              setSidebar(false);
+            }}
           >
             <Settings size={18} />
             Settings
@@ -748,18 +824,24 @@ export default function StoreApp() {
             <button
               className="icon-button"
               title="Account"
-              onClick={() => setModal("account")}
+              onClick={() => {
+                setSidebar(false);
+                setModal("account");
+              }}
             >
               <ChevronRight size={17} />
             </button>
           </div>
         </div>
       </aside>
-      <div className="main-shell">
+      <div className="main-shell" inert={sidebar}>
         <header className="topbar">
           <div className="breadcrumb">
             <button
+              ref={menuRef}
               className="mobile-menu icon-button"
+              aria-expanded={sidebar}
+              aria-controls="main-navigation"
               onClick={() => setSidebar(!sidebar)}
               aria-label="Toggle navigation"
             >
@@ -910,7 +992,7 @@ export default function StoreApp() {
                         (cart.find((l) => l.productId === p.id)?.quantity || 0)
                     )
                       return "Not added: insufficient stock.";
-                    addProduct(p);
+                    addProduct(p, false);
                     return `${p.name} added to bill.`;
                   }}
                 />
@@ -924,7 +1006,12 @@ export default function StoreApp() {
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") {
+                        if (
+                          e.key === "Enter" &&
+                          !e.nativeEvent.isComposing &&
+                          !e.repeat
+                        ) {
+                          e.preventDefault();
                           const exact = findProductByCode(
                             state.products,
                             query,
@@ -1084,6 +1171,10 @@ export default function StoreApp() {
                     </button>
                   </div>
                 )}
+                <p className="quantity-keyboard-hint">
+                  Select a product, type quantity, then Enter for the next
+                  product. Esc keeps the previous quantity.
+                </p>
                 <div className="bill-items-header">
                   <span>
                     ITEM <small>({cart.length})</small>
@@ -1131,6 +1222,16 @@ export default function StoreApp() {
                             <QuantityInput
                               name={l.name}
                               value={l.quantity}
+                              max={l.stock}
+                              focusRequest={
+                                quantityFocus.id === l.productId
+                                  ? quantityFocus.sequence
+                                  : 0
+                              }
+                              onNext={() => {
+                                setQuery("");
+                                searchRef.current?.focus();
+                              }}
                               onCommit={(q) => setQuantity(l.productId, q)}
                             />
                             <button
@@ -3363,29 +3464,86 @@ function Receipt({
 function QuantityInput({
   name,
   value,
+  max,
+  focusRequest,
   onCommit,
+  onNext,
 }: {
   name: string;
   value: number;
-  onCommit: (quantity: number) => void;
+  max: number;
+  focusRequest: number;
+  onCommit: (quantity: number) => boolean;
+  onNext: () => void;
 }) {
   const [draft, setDraft] = useState(String(value));
+  const input = useRef<HTMLInputElement>(null);
+  const skipBlur = useRef(false);
   useEffect(() => setDraft(String(value)), [value]);
+  useEffect(() => {
+    if (!focusRequest) return;
+    const frame = requestAnimationFrame(() => {
+      input.current?.focus();
+      input.current?.select();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusRequest]);
+  function commit() {
+    const q = Number(draft);
+    if (
+      !draft.trim() ||
+      !Number.isFinite(q) ||
+      q <= 0 ||
+      money(q) !== q ||
+      q > max
+    ) {
+      input.current?.setCustomValidity(
+        `Enter a quantity from 0.01 to ${max}, with at most two decimal places.`,
+      );
+      return false;
+    }
+    input.current?.setCustomValidity("");
+    return onCommit(q);
+  }
   return (
     <input
+      ref={input}
       aria-label={"Quantity of " + name}
       type="number"
+      inputMode="decimal"
       min="0.01"
+      max={max}
       step="0.01"
       value={draft}
-      onChange={(e) => setDraft(e.target.value)}
+      onChange={(e) => {
+        e.currentTarget.setCustomValidity("");
+        setDraft(e.target.value);
+      }}
       onBlur={() => {
-        const q = Number(draft);
-        if (Number.isFinite(q) && q > 0) onCommit(q);
+        if (!skipBlur.current) commit();
+        skipBlur.current = false;
+        input.current?.setCustomValidity("");
         setDraft(String(value));
       }}
       onKeyDown={(e) => {
-        if (e.key === "Enter") e.currentTarget.blur();
+        if (e.nativeEvent.isComposing) return;
+        if (e.key === "Enter") {
+          e.preventDefault();
+          e.stopPropagation();
+          if (e.repeat) return;
+          if (commit()) {
+            skipBlur.current = true;
+            onNext();
+          } else input.current?.reportValidity();
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          skipBlur.current = true;
+          e.currentTarget.setCustomValidity("");
+          setDraft(String(value));
+          onNext();
+        }
       }}
     />
   );

@@ -25,6 +25,7 @@ try {
   await page.keyboard.press("F4");
   await page.getByRole("heading", { name: "Quick calculator" }).waitFor();
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
   await page.getByRole("button", { name: "Suppliers", exact: true }).click();
   await page
     .getByRole("button", { name: "Record purchase", exact: true })
@@ -65,6 +66,7 @@ try {
   assert.equal(state.purchases[0].paid, 100);
   assert.equal(state.products[0].price, 270);
   await page.reload();
+  await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
   await page.getByRole("button", { name: "Suppliers", exact: true }).click();
   await page.getByText("BROWSER-MULTI", { exact: true }).waitFor();
   console.log(

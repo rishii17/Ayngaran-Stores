@@ -47,6 +47,7 @@ try {
     state,
   );
   await page.goto(process.env.POS_TEST_URL || "http://localhost:3000");
+  await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
   await page.getByRole("button", { name: "Suppliers", exact: true }).click();
   const panel = page.getByRole("region", { name: "Compare buying costs" });
   const search = panel.getByRole("textbox", {

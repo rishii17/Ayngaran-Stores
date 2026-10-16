@@ -2562,3 +2562,66 @@ td small {
   padding: 12px 20px;
   font-size: 13px;
 }
+
+/* Navigation is an on-demand drawer at every screen size. */
+.app-shell > .main-shell {
+  margin-left: 0;
+}
+.app-shell .mobile-menu {
+  display: flex;
+}
+.app-shell > .sidebar[hidden] {
+  display: none;
+}
+.app-shell > .sidebar.is-open {
+  display: flex;
+  width: min(280px, 90vw);
+  padding: 48px 16px 0;
+  overflow-y: auto;
+  box-shadow: 8px 0 30px #30242b26;
+}
+.navigation-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 29;
+  background: #30242b66;
+}
+.navigation-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+.sidebar.is-open .brand > span:last-child,
+.sidebar.is-open .store-switch,
+.sidebar.is-open .nav-label,
+.sidebar.is-open nav button > span,
+.sidebar.is-open .nav-settings {
+  display: flex;
+}
+.sidebar.is-open .brand {
+  justify-content: flex-start;
+  font-size: 17px;
+}
+.sidebar.is-open nav {
+  margin-top: 0;
+}
+.sidebar.is-open nav button {
+  justify-content: flex-start;
+  padding: 13px;
+}
+.quantity-keyboard-hint {
+  margin: 0;
+  padding: 10px 18px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.quantity-control input:focus {
+  outline: 2px solid var(--wine);
+  outline-offset: 2px;
+}
+@media print {
+  .navigation-backdrop {
+    display: none;
+  }
+}
