@@ -51,6 +51,11 @@ import HardwareScanner from "./hardware-scanner";
 import { authErrorMessage } from "../lib/auth-error.mjs";
 import PurchaseForm from "./purchase-form";
 import PurchaseComparison from "./purchase-comparison";
+import {
+  addSupplierSample,
+  supplierSampleCount,
+  supplierSampleId,
+} from "../lib/supplier-sample.mjs";
 import QuickCalculator from "./quick-calculator";
 import CustomerPicker from "./customer-picker";
 import CustomerBills from "./customer-bills";
@@ -402,6 +407,46 @@ export default function StoreApp() {
           : e.message,
       );
       return null;
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  }
+  async function loadSupplierSample() {
+    if (mode !== "demo" || busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      const run = () => {
+        const saved = localStorage.getItem("ayngaran-demo-v1");
+        const data = saved
+          ? JSON.parse(saved)
+          : { state: stateRef.current, receipts: {} };
+        const result = addSupplierSample(data.state, "demo");
+        localStorage.setItem(
+          "ayngaran-demo-v1",
+          JSON.stringify({ ...data, state: result.state }),
+        );
+        return result;
+      };
+      const result = navigator.locks
+        ? await navigator.locks.request("ayngaran-demo", run)
+        : run();
+      setState(result.state);
+      setModal("");
+      setPage("Suppliers");
+      notify(
+        result.added
+          ? `${result.added} supplier sample products added`
+          : "Supplier sample list is already loaded",
+      );
+    } catch (e: any) {
+      setError(
+        e.name === "QuotaExceededError"
+          ? "Browser storage is full. Sample data was not added."
+          : e.message,
+      );
     } finally {
       busyRef.current = false;
       setBusy(false);
@@ -827,6 +872,14 @@ export default function StoreApp() {
                 <span className="demo-dot" />
                 You’re exploring sample data. Changes are saved in this browser.
               </span>
+              <button
+                disabled={busy || state.sampleLists?.includes(supplierSampleId)}
+                onClick={() => setModal("supplier-sample")}
+              >
+                {state.sampleLists?.includes(supplierSampleId)
+                  ? "Supplier sample list loaded"
+                  : "Load supplier sample list"}
+              </button>
               <button
                 onClick={() => (user ? switchLive() : setModal("account"))}
               >
@@ -1614,7 +1667,11 @@ export default function StoreApp() {
                 </div>
               )}
               {page === "Suppliers" && (
-                <PurchaseComparison products={state.products} suppliers={state.suppliers} purchases={state.purchases} />
+                <PurchaseComparison
+                  products={state.products}
+                  suppliers={state.suppliers}
+                  purchases={state.purchases}
+                />
               )}
               <section className="panel">
                 <div className="table-toolbar">
@@ -2113,6 +2170,7 @@ export default function StoreApp() {
                 payment: "Record a payment",
                 adjust: "Adjust stock",
                 purchase: "Record a purchase",
+                "supplier-sample": "Load supplier sample list",
                 settings: "Store settings",
                 account: "Your Ayngaran workspace",
                 void: "Void this sale?",
@@ -2856,6 +2914,40 @@ export default function StoreApp() {
                 Save stock adjustment
               </button>
             </form>
+          )}
+          {modal === "supplier-sample" && mode === "demo" && (
+            <div className="settings-form">
+              <p>
+                Add {supplierSampleCount} products from your pasted list, with
+                English search names and the original Sinhala names. Existing
+                sample products and transactions stay unchanged.
+              </p>
+              <p>
+                Price pairs mean buying cost / selling price in LKR. Brand and
+                price offers stay separate. The final bracket is kept as the
+                quoted case quantity, not stock. Compare the listed pack sizes
+                before buying.
+              </p>
+              <p>
+                For testing, this adds 12 units of each priced product and one
+                fully paid purchase under “Sample supplier — uploaded price
+                list”. These are sample transactions, not actual supplier
+                purchase history.
+              </p>
+              <p>
+                Two entries have no selling price: Ameens Henna and OBO A4
+                Laminating Pouch. They are added as inactive with no stock.
+                Soorya Matches prices are inferred from (8490)(14400)(720).
+                Review these before using real prices.
+              </p>
+              <button
+                className="primary"
+                disabled={busy}
+                onClick={loadSupplierSample}
+              >
+                Add supplier sample products
+              </button>
+            </div>
           )}
           {modal === "purchase" && (
             <PurchaseForm

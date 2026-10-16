@@ -100,6 +100,14 @@ export default function PurchaseComparison({
               <tr key={`${row.product.id}:${row.supplierId || "none"}`}>
                 <td>
                   <strong>{row.product.name}</strong>
+                  {row.product.sampleQuote && (
+                    <div className="muted">
+                      Source quote: {row.product.sampleQuote}
+                      {row.product.sampleNote
+                        ? ` · ${row.product.sampleNote}`
+                        : ""}
+                    </div>
+                  )}
                   <div className="muted">
                     {row.product.sku} · Stock {row.product.stock}{" "}
                     {row.product.unit}
