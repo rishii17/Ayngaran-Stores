@@ -254,6 +254,7 @@ export default function StoreApp() {
     [reportDate, setReportDate] = useState(""),
     [reportCustomerId, setReportCustomerId] = useState(""),
     [authMode, setAuthMode] = useState("signin");
+  const [mobileBill, setMobileBill] = useState(false);
   const [quantityFocus, setQuantityFocus] = useState({ id: "", sequence: 0 });
   const [searchFocus, setSearchFocus] = useState(0);
   const navigationRef = useRef<HTMLElement>(null);
@@ -360,6 +361,7 @@ export default function StoreApp() {
       if (e.key === "F2") {
         e.preventDefault();
         setPage("Point of sale");
+        setMobileBill(false);
         setSearchFocus((count) => count + 1);
       }
       if (e.key === "F4") {
@@ -539,11 +541,13 @@ export default function StoreApp() {
           )
         : [...cart, { productId: p.id, quantity: 1 }],
     );
-    if (focusQuantity)
+    if (focusQuantity) {
+      setMobileBill(true);
       setQuantityFocus((previous) => ({
         id: p.id,
         sequence: previous.sequence + 1,
       }));
+    }
   }
   function setQuantity(id: string, q: number) {
     const product = state.products.find((p: any) => p.id === id);
@@ -730,7 +734,9 @@ export default function StoreApp() {
       </div>
     );
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell${page === "Point of sale" ? " billing-screen" : ""}${mobileBill ? " showing-bill" : ""}`}
+    >
       {sidebar && (
         <button
           className="navigation-backdrop"
@@ -1230,7 +1236,8 @@ export default function StoreApp() {
                               }
                               onNext={() => {
                                 setQuery("");
-                                searchRef.current?.focus();
+                                setMobileBill(false);
+                                setSearchFocus((count) => count + 1);
                               }}
                               onCommit={(q) => setQuantity(l.productId, q)}
                             />
@@ -3204,14 +3211,11 @@ export default function StoreApp() {
       {page === "Point of sale" && (
         <button
           className="mobile-bill-link"
-          onClick={() =>
-            document
-              .querySelector(".bill-panel")
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
+          aria-pressed={mobileBill}
+          onClick={() => setMobileBill((visible) => !visible)}
         >
           <ShoppingBasket size={18} />
-          View bill · {cart.length} items{" "}
+          {mobileBill ? "Back to products" : "View bill"} · {cart.length} items{" "}
           <strong>Rs. {fmt(total.total)}</strong>
         </button>
       )}

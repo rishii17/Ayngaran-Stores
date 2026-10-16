@@ -184,3 +184,7 @@ Source: `data/supplier-sample-source.txt`; reviewed entries: `data/supplier-samp
 The side navigation is closed by default on desktop and mobile, leaving the main area for products and the current bill. Use the menu button to open it; choose a page, press Escape, click outside it, or use its close button to dismiss it.
 
 Click a product or search its SKU/name and press Enter. Its bill quantity is focused and selected automatically: type the required quantity (for example `2.5`) and press **Enter** to save it and return to product search. **Escape** keeps the previous quantity and returns to search. Invalid, empty, or over-stock quantities cannot be committed with Enter. **F2** opens billing and focuses search from another page. Dedicated hardware scanner input keeps focus for repeated scans; each scan still adds one unit.
+
+### Billing fits the screen
+
+Billing uses the available screen height, with the total and Charge button kept in view. The product grid and bill items scroll independently instead of extending the whole page. On phones, **View bill / Back to products** switches between the two within the same screen. Adding a product opens its quantity in the bill; Enter returns to product search. Other pages retain their normal scrolling. On unusually short screens (including when a phone keyboard reduces the viewport), the panels can scroll internally so controls remain reachable.
