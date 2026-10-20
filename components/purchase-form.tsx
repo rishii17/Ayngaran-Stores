@@ -1,7 +1,8 @@
 "use client";
 import { useMemo, useRef, useState } from "react";
 import { searchIndex, searchItems } from "../lib/search.mjs";
-import Scanner from "./scanner";
+import dynamic from "next/dynamic";
+const Scanner = dynamic(() => import("./scanner"), { ssr: false });
 import { findProductByCode } from "../lib/product-code.mjs";
 import HardwareScanner from "./hardware-scanner";
 import { money } from "../lib/domain.mjs";

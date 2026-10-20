@@ -45,17 +45,19 @@ import {
   Flower2,
 } from "lucide-react";
 import ProductArt, { GaneshMark } from "./product-art";
-import Scanner from "./scanner";
+import dynamic from "next/dynamic";
+const Scanner = dynamic(() => import("./scanner"), { ssr: false });
 import { findProductByCode } from "../lib/product-code.mjs";
 import HardwareScanner from "./hardware-scanner";
 import { authErrorMessage } from "../lib/auth-error.mjs";
 import PurchaseForm from "./purchase-form";
 import PurchaseComparison from "./purchase-comparison";
 import {
-  addSupplierSample,
+  sampleModeEnabled,
   supplierSampleCount,
   supplierSampleId,
-} from "../lib/supplier-sample.mjs";
+} from "../lib/runtime-config.mjs";
+import { sortCustomers } from "../lib/customer-sort.mjs";
 import QuickCalculator from "./quick-calculator";
 import CustomerPicker from "./customer-picker";
 import CustomerBills from "./customer-bills";
@@ -231,7 +233,9 @@ function Modal({
 export default function StoreApp() {
   const [state, setState] = useState<any>(emptyState()),
     [ready, setReady] = useState(false),
-    [mode, setMode] = useState<"demo" | "live">("demo"),
+    [mode, setMode] = useState<"demo" | "live">(
+      sampleModeEnabled ? "demo" : "live",
+    ),
     [user, setUser] = useState<any>(null),
     [page, setPage] = useState("Point of sale"),
     [query, setQuery] = useState(""),
@@ -254,6 +258,7 @@ export default function StoreApp() {
     [reportDate, setReportDate] = useState(""),
     [reportCustomerId, setReportCustomerId] = useState(""),
     [authMode, setAuthMode] = useState("signin");
+  const [customerSort, setCustomerSort] = useState("name-asc");
   const [mobileBill, setMobileBill] = useState(false);
   const [quantityFocus, setQuantityFocus] = useState({ id: "", sequence: 0 });
   const [searchFocus, setSearchFocus] = useState(0);
@@ -270,8 +275,10 @@ export default function StoreApp() {
   };
   useEffect(() => {
     try {
-      const data = localStorage.getItem("ayngaran-demo-v1");
-      setState(data ? JSON.parse(data).state : seedState());
+      if (sampleModeEnabled) {
+        const data = localStorage.getItem("ayngaran-demo-v1");
+        setState(data ? JSON.parse(data).state : seedState());
+      }
     } catch {
       setError(
         "Saved sample data could not be read. Export or clear browser storage before continuing.",
@@ -284,7 +291,10 @@ export default function StoreApp() {
         .then(async ({ data }) => {
           if (data.session) {
             setUser(data.session.user);
-            if (localStorage.getItem("ayngaran-mode") === "live") {
+            if (
+              !sampleModeEnabled ||
+              localStorage.getItem("ayngaran-mode") === "live"
+            ) {
               setMode("live");
               setState(emptyState());
               try {
@@ -317,6 +327,9 @@ export default function StoreApp() {
     }
     setReady(true);
   }, []);
+  useEffect(() => {
+    if (ready && !sampleModeEnabled && !user) setModal("account");
+  }, [ready, user]);
   useEffect(() => {
     if (searchFocus) searchRef.current?.focus();
   }, [searchFocus]);
@@ -457,11 +470,12 @@ export default function StoreApp() {
     }
   }
   async function loadSupplierSample() {
-    if (mode !== "demo" || busyRef.current) return;
+    if (!sampleModeEnabled || mode !== "demo" || busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
     setError("");
     try {
+      const { addSupplierSample } = await import("../lib/supplier-sample.mjs");
       const run = () => {
         const saved = localStorage.getItem("ayngaran-demo-v1");
         const data = saved
@@ -688,10 +702,12 @@ export default function StoreApp() {
     () => searchIndex(contacts, contactFields),
     [contacts],
   );
-  const tableContacts = useMemo(
-    () => searchItems(contactIndex, tableQuery),
-    [contactIndex, tableQuery],
-  );
+  const tableContacts = useMemo(() => {
+    const matches = searchItems(contactIndex, tableQuery);
+    return page === "Customers"
+      ? sortCustomers(matches, state, customerSort)
+      : matches;
+  }, [contactIndex, tableQuery, page, state, customerSort]);
   const reportSales = useMemo(
     () =>
       state.sales.filter(
@@ -860,7 +876,11 @@ export default function StoreApp() {
           <div className="top-actions">
             <span className={"connection " + (mode === "live" ? "live" : "")}>
               <i />
-              {mode === "live" ? "Cloud connected" : "Sample mode"}
+              {mode === "live"
+                ? user
+                  ? "Live store"
+                  : "Sign in required"
+                : "Sample mode"}
             </span>
             <span className="top-date">
               {new Date().toLocaleDateString("en-GB", {
@@ -954,7 +974,7 @@ export default function StoreApp() {
               ) : null}
             </div>
           </div>
-          {mode === "demo" && (
+          {sampleModeEnabled && mode === "demo" && (
             <div className="demo-banner">
               <span>
                 <span className="demo-dot" />
@@ -1795,6 +1815,28 @@ export default function StoreApp() {
                       onChange={(e) => setTableQuery(e.target.value)}
                     />
                   </div>
+                  {page === "Customers" && (
+                    <label className="customer-sort">
+                      Sort customers
+                      <select
+                        value={customerSort}
+                        onChange={(e) => setCustomerSort(e.target.value)}
+                      >
+                        <option value="name-asc">Name A–Z</option>
+                        <option value="name-desc">Name Z–A</option>
+                        <option value="village">Village A–Z</option>
+                        <option value="balance-desc">
+                          Outstanding: highest first
+                        </option>
+                        <option value="balance-asc">
+                          Outstanding: lowest first
+                        </option>
+                        <option value="credit-desc">
+                          Credit limit: highest first
+                        </option>
+                      </select>
+                    </label>
+                  )}
                   <span className="muted">
                     {
                       state[page === "Customers" ? "customers" : "suppliers"]
@@ -2180,9 +2222,10 @@ export default function StoreApp() {
                   </div>
                   <div className="settings-form">
                     <p>
-                      Live records belong to the signed-in owner account. Sample
-                      records stay on this browser and are never uploaded
-                      automatically.
+                      Live records belong to the signed-in owner account and are
+                      stored in Supabase.
+                      {sampleModeEnabled &&
+                        " Sample records stay on this browser and are never uploaded automatically."}
                     </p>
                     <button
                       className="primary wide"
@@ -2295,7 +2338,7 @@ export default function StoreApp() {
               {error}
             </div>
           )}
-          {modal === "seed" && (
+          {sampleModeEnabled && modal === "seed" && (
             <form onSubmit={submitForm}>
               <p>
                 Load 16 dummy products, customers with villages, suppliers and
@@ -3023,40 +3066,42 @@ export default function StoreApp() {
               </button>
             </form>
           )}
-          {modal === "supplier-sample" && mode === "demo" && (
-            <div className="settings-form">
-              <p>
-                Add {supplierSampleCount} products from your pasted list, with
-                English search names and the original Sinhala names. Existing
-                sample products and transactions stay unchanged.
-              </p>
-              <p>
-                Price pairs mean buying cost / selling price in LKR. Brand and
-                price offers stay separate. The final bracket is kept as the
-                quoted case quantity, not stock. Compare the listed pack sizes
-                before buying.
-              </p>
-              <p>
-                For testing, this adds 12 units of each priced product and one
-                fully paid purchase under “Sample supplier — uploaded price
-                list”. These are sample transactions, not actual supplier
-                purchase history.
-              </p>
-              <p>
-                Two entries have no selling price: Ameens Henna and OBO A4
-                Laminating Pouch. They are added as inactive with no stock.
-                Soorya Matches prices are inferred from (8490)(14400)(720).
-                Review these before using real prices.
-              </p>
-              <button
-                className="primary"
-                disabled={busy}
-                onClick={loadSupplierSample}
-              >
-                Add supplier sample products
-              </button>
-            </div>
-          )}
+          {sampleModeEnabled &&
+            modal === "supplier-sample" &&
+            mode === "demo" && (
+              <div className="settings-form">
+                <p>
+                  Add {supplierSampleCount} products from your pasted list, with
+                  English search names and the original Sinhala names. Existing
+                  sample products and transactions stay unchanged.
+                </p>
+                <p>
+                  Price pairs mean buying cost / selling price in LKR. Brand and
+                  price offers stay separate. The final bracket is kept as the
+                  quoted case quantity, not stock. Compare the listed pack sizes
+                  before buying.
+                </p>
+                <p>
+                  For testing, this adds 12 units of each priced product and one
+                  fully paid purchase under “Sample supplier — uploaded price
+                  list”. These are sample transactions, not actual supplier
+                  purchase history.
+                </p>
+                <p>
+                  Two entries have no selling price: Ameens Henna and OBO A4
+                  Laminating Pouch. They are added as inactive with no stock.
+                  Soorya Matches prices are inferred from (8490)(14400)(720).
+                  Review these before using real prices.
+                </p>
+                <button
+                  className="primary"
+                  disabled={busy}
+                  onClick={loadSupplierSample}
+                >
+                  Add supplier sample products
+                </button>
+              </div>
+            )}
           {modal === "purchase" && (
             <PurchaseForm
               products={state.products}
@@ -3088,25 +3133,43 @@ export default function StoreApp() {
                   <button
                     className="button wide"
                     onClick={async () => {
-                      await getSupabase()?.auth.signOut();
+                      setError("");
+                      const result = await getSupabase()
+                        ?.auth.signOut()
+                        .catch((error: Error) => ({ error }));
+                      if (result?.error) {
+                        setError(authErrorMessage(result.error));
+                        return;
+                      }
                       setUser(null);
-                      setMode("demo");
-                      localStorage.setItem("ayngaran-mode", "demo");
-                      try {
-                        const saved = localStorage.getItem("ayngaran-demo-v1");
-                        setState(saved ? JSON.parse(saved).state : seedState());
-                      } catch {
-                        setState(seedState());
+                      setMode(sampleModeEnabled ? "demo" : "live");
+                      if (sampleModeEnabled) {
+                        localStorage.setItem("ayngaran-mode", "demo");
+                        try {
+                          const saved =
+                            localStorage.getItem("ayngaran-demo-v1");
+                          setState(
+                            saved ? JSON.parse(saved).state : seedState(),
+                          );
+                        } catch {
+                          setState(seedState());
+                        }
+                      } else {
+                        localStorage.removeItem("ayngaran-mode");
+                        setState(emptyState());
                       }
                       setCart([]);
                       setCustomerId("");
                       setDiscount(0);
                       setHeldId(null);
-                      close();
+                      if (sampleModeEnabled) close();
+                      else setModal("account");
                     }}
                   >
                     <LogOut size={17} />
-                    Sign out & return to sample
+                    {sampleModeEnabled
+                      ? "Sign out & return to sample"
+                      : "Sign out"}
                   </button>
                 </>
               ) : (
@@ -3115,7 +3178,9 @@ export default function StoreApp() {
                     e.preventDefault();
                     const sb = getSupabase();
                     if (!sb) {
-                      setError("Supabase is not configured. See .env.example.");
+                      setError(
+                        "Store sign-in is not configured yet. Contact the store administrator.",
+                      );
                       return;
                     }
                     setBusy(true);
@@ -3201,8 +3266,8 @@ export default function StoreApp() {
                 </form>
               )}
               <p className="secure-note">
-                Live accounts start empty. Sample transactions are never mixed
-                with live records.
+                Your products, bills and accounts belong to your signed-in
+                store. New stores start empty.
               </p>
             </div>
           )}

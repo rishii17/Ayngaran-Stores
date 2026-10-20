@@ -2,7 +2,9 @@
 
 A working owner-operated POS application built with **Next.js 16, React 19, Express 5 and Supabase**, with an ivory, burgundy and saffron Vinayagar-inspired design. Currency is **LKR**, and daily reporting uses **Asia/Colombo**.
 
-For the latest features, security findings and final run instructions, see [Final verification](docs/RELEASE-CHECK.md).
+For the current manual deployment steps, see [Deployment](docs/DEPLOYMENT.md). For validation evidence and historical release notes, see [Final verification](docs/RELEASE-CHECK.md).
+
+Public builds open the live store with no sample products or sample import controls. Configure Supabase before building and sign in with your owner account. Customer lists can be sorted by name, village, outstanding balance, or credit limit.
 
 ## Start locally
 
@@ -21,9 +23,9 @@ The selected project is Ayngaran Stores. Configure `.env.local` from `.env.examp
 
 ## Sample and live workspaces
 
-- **Sample mode** starts with 16 products, three customers and two suppliers. Changes persist in this browser's local storage. It is labelled throughout, including printed sample receipts. This is not a cloud backup.
+- **Sample mode (explicit test builds only)** requires `NEXT_PUBLIC_ENABLE_SAMPLE_MODE=true` at build time. It starts with 16 products, three customers and two suppliers. Changes persist in this browser's local storage. It is labelled throughout, including printed sample receipts. This is not a cloud backup.
 - **Open live store** opens Supabase email/password sign-in. Create an owner account if needed, confirm the email if Supabase requires it, then sign in.
-- Live accounts start with an empty store. Sample data is never silently imported. Settings offers an explicit, empty-store-only dummy import from the Supabase template.
+- Live accounts start with an empty store. Sample data is never silently imported. Explicit test builds can enable the empty-store-only dummy import; public builds hide and block sample imports.
 - Each signed-in owner has an isolated store. This release does not share stores across different staff accounts.
 - The selected live workspace is restored on reload. Failed cloud saves report an error and do not fall back to local sample storage.
 
@@ -83,7 +85,7 @@ npm run build
 npm start
 ```
 
-Deploy both Next.js and Express on a Node-capable host behind HTTPS, with the environment variables configured at build time (public frontend configuration) and runtime (Express). The Express port stays private; publish the Next.js port. Camera access requires HTTPS outside localhost. No production hosting deployment has been made from this workspace. Sites' Cloudflare Worker runtime does not directly host this separate Express server, so the requested Node/Express architecture was preserved.
+Deploy Next.js on a Node-capable host behind HTTPS, with Supabase public configuration supplied at build time and runtime. The existing Express API runs inside Next.js; publish only the Next.js service. Camera access requires HTTPS outside localhost. Follow the [manual deployment guide](docs/DEPLOYMENT.md); deployment and live-owner acceptance are performed by the owner.
 
 ## Verification
 
@@ -116,7 +118,7 @@ Search products using words in any order or Tamil names, and search POS customer
 
 Use **Products → Price** to update selling price/cost with a reason. The history records each change. Gross profit on completed sales uses the cost recorded at checkout; later cost changes never rewrite old sale profits. Owner profit displays are kept outside customer printouts.
 
-Use **Settings → Daily Excel backup** for a selected-day report and full current snapshot. Use **Check live connection** for an authenticated health check and **Load dummy data** only for an empty test account. See the release guide for final owner acceptance and hardware checks.
+Use **Settings → Daily Excel backup** for a selected-day report and full current snapshot. Use **Check live connection** for an authenticated health check. Explicit sample-enabled test builds also provide **Load dummy data** for empty test accounts. See the release guide for final owner acceptance and hardware checks.
 
 Quick calculator shows calculation steps and operand count. Mouse and keyboard share the same controls: digits, decimal, +, -, *, /, Enter, Backspace and C/Delete. Calculations run left to right, rounded to two decimals; history retains the last 100 steps while open.
 
@@ -173,7 +175,7 @@ Sort by buying cost or potential margin to plan restocking. Margin is `(current 
 
 ### Pasted supplier sample list
 
-In the **Sample workspace**, click **Load supplier sample list → Add supplier sample products**. This appends 184 entries from the supplied list, retaining Sinhala names alongside English search names, sizes, variants and source price quotes. Existing sample data stays intact; the list loads only once per browser. Search **toothpaste**, **soap**, **milk powder**, **Coca-Cola**, **Signal**, or the Sinhala name under **Suppliers → Compare buying costs**.
+In an explicitly enabled **test Sample workspace**, click **Load supplier sample list → Add supplier sample products**. This appends 184 entries from the supplied list, retaining Sinhala names alongside English search names, sizes, variants and source price quotes. Existing sample data stays intact; the list loads only once per browser. Search **toothpaste**, **soap**, **milk powder**, **Coca-Cola**, **Signal**, or the Sinhala name under **Suppliers → Compare buying costs**.
 
 Buying/selling pairs are interpreted as LKR costs and selling prices. The final parentheses are retained as quoted case quantities, not inventory. One fully paid, explicitly labelled sample purchase supplies 12 test units for each of 182 priced entries. Its history is generated for testing and is not a real invoice. Ameens Henna and OBO A4 Laminating Pouch have no supplied selling price and remain inactive with zero stock. Soorya Matches' `(8490)(14400)(720)` is interpreted as cost/selling/case quantity and flagged for review. Conditional bulk-order pricing is preserved in the source text but is not applied automatically. No real barcodes or supplier identity were supplied; barcodes remain empty and the supplier is labelled as sample data. Live stores are unaffected.
 

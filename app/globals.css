@@ -2868,3 +2868,16 @@ td small {
     max-height: 40dvh;
   }
 }
+
+.customer-sort {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.customer-sort select { max-width: 100%; font-size: 12px; }
+@media (max-width: 720px) {
+  .table-toolbar:has(.customer-sort) { flex-wrap: wrap; }
+  .table-toolbar:has(.customer-sort) .search-box { flex-basis: 100%; }
+}

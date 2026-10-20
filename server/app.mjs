@@ -223,6 +223,14 @@ export function createApp() {
           payload: z.unknown(),
         })
         .parse(req.body);
+      if (
+        envelope.type === "seed" &&
+        process.env.NEXT_PUBLIC_ENABLE_SAMPLE_MODE !== "true"
+      ) {
+        return res
+          .status(403)
+          .json({ error: "Sample data import is disabled in this release" });
+      }
       const payload = schemas[envelope.type].parse(envelope.payload);
       for (let attempt = 0; attempt < 5; attempt++) {
         const current = await load(req);
@@ -271,7 +279,14 @@ export function createApp() {
       return res
         .status(400)
         .json({ error: error.issues.map((x) => x.message).join("; ") });
-    console.error("POS request failed:", error.message);
+    if (error.type === "entity.parse.failed")
+      return res.status(400).json({ error: "Invalid JSON request" });
+    if (error.type === "entity.too.large")
+      return res.status(413).json({ error: "Request exceeds the 1 MB limit" });
+    console.error(
+      "POS request failed:",
+      error.code || error.name || "RequestError",
+    );
     res.status(error.code ? 503 : 400).json({
       error: error.code
         ? "Database operation failed. Check configuration and try again."

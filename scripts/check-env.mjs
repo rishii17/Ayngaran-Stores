@@ -1,7 +1,9 @@
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL,
   key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 if (!url && !key && process.argv.includes("--allow-missing")) {
-  console.log("No Supabase environment configured: building sample mode only.");
+  console.log(
+    "No Supabase environment configured: live sign-in will be unavailable until the public configuration is supplied and the app is rebuilt.",
+  );
   process.exit(0);
 }
 const issues = [];

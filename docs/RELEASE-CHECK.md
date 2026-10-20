@@ -1,3 +1,26 @@
+# Manual web release — 20 October 2026
+
+Current release instructions: [Deployment](DEPLOYMENT.md).
+
+- Added customer sorting by name in both directions, village, outstanding balance in both directions, and highest credit limit. Sorting applies to search results without changing customer records or balances.
+- Public builds default to live sign-in. They show no sample products or sample import buttons and ignore old demo browser storage. Stored browser demo backups and existing live records are preserved. Live API sample import is blocked by default.
+- Camera scanner code and the optional supplier sample catalogue load on demand. Existing billing, supplier comparisons, purchases, credit, reporting and backups retain their workflows.
+- Fixed malformed/oversized JSON responses, sign-out error handling, and the misleading signed-out connection label. Removed the framework disclosure header and added HTTPS transport security.
+
+Validation completed in this workspace:
+
+- **48 application/security tests passed**, zero failures or skips.
+- **4 database tests passed** in isolated PostgreSQL/PGlite: owner isolation, anonymous denial, migration/rollback and transaction round-trips.
+- **All 11 browser regression scripts passed**, including customer sorting, partial payments, scanner formats, supplier comparisons, persistence, and seven billing viewport sizes.
+- Production build and TypeScript passed. Separate production browser checks passed for no samples, ignored demo storage, unauthenticated API denial, and session restoration, customer sorting, sign-out error handling and session cleanup with explicitly mocked authentication/API fixtures.
+- Dependency audit: **0 known vulnerabilities**. Local security tests cover authentication requirements, sample-import blocking, request limits, malformed JSON handling, and rate limiting. A source secret-pattern scan found only the existing deliberately fake key in the environment-validation test; no real credential match was found by those patterns.
+
+The user will deploy manually. Real Supabase variables are absent from this machine; `npm run check:env` correctly reports the two missing public configuration values. Authentication/session browser tests used isolated fixtures, not a live owner account. Live-owner checkout, live database concurrency, hosting setup, and physical scanner/printer checks remain for deployment acceptance. No live data was deleted, and no website deployment was performed here.
+
+---
+
+## Historical release notes
+
 > Project switch: Ayngaran Stores (`uoddttvmpqkojdwofcxr`) is now the target. Cloud checks described below are historical checks against the previous project; they do not verify this new project. A matching public key and project access are still required.
 
 # Final verification — 12 October 2026

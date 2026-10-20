@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Download, Database, CheckCircle2 } from "lucide-react";
 import { excelBackup, api } from "@/lib/client";
+import { sampleModeEnabled } from "../lib/runtime-config.mjs";
 import { localDay } from "@/lib/reporting.mjs";
 export default function BackupPanel({
   state,
@@ -88,10 +89,12 @@ export default function BackupPanel({
             Check live connection
           </button>
         )}
-        <button className="button wide" disabled={busy} onClick={onSeed}>
-          <Database size={17} />
-          Load dummy data into empty store
-        </button>
+        {sampleModeEnabled && (
+          <button className="button wide" disabled={busy} onClick={onSeed}>
+            <Database size={17} />
+            Load dummy data into empty store
+          </button>
+        )}
         {message && (
           <p role="status" className="positive">
             {message}
