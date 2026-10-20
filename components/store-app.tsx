@@ -62,6 +62,8 @@ import QuickCalculator from "./quick-calculator";
 import CustomerPicker from "./customer-picker";
 import CustomerBills from "./customer-bills";
 import BackupPanel from "./backup-panel";
+import LoginForm from "./login-form";
+import UserManagement from "./user-management";
 import {
   VILLAGES,
   searchIndex,
@@ -256,8 +258,7 @@ export default function StoreApp() {
     [stockFilter, setStockFilter] = useState("all"),
     [sidebar, setSidebar] = useState(false),
     [reportDate, setReportDate] = useState(""),
-    [reportCustomerId, setReportCustomerId] = useState(""),
-    [authMode, setAuthMode] = useState("signin");
+    [reportCustomerId, setReportCustomerId] = useState("");
   const [customerSort, setCustomerSort] = useState("name-asc");
   const [mobileBill, setMobileBill] = useState(false);
   const [quantityFocus, setQuantityFocus] = useState({ id: "", sequence: 0 });
@@ -327,9 +328,7 @@ export default function StoreApp() {
     }
     setReady(true);
   }, []);
-  useEffect(() => {
-    if (ready && !sampleModeEnabled && !user) setModal("account");
-  }, [ready, user]);
+
   useEffect(() => {
     if (searchFocus) searchRef.current?.focus();
   }, [searchFocus]);
@@ -744,10 +743,25 @@ export default function StoreApp() {
   };
   if (!ready)
     return (
-      <div className="loading">
+      // Some extensions annotate this server-rendered placeholder before hydration.
+      <div className="loading" suppressHydrationWarning>
         <GaneshMark />
         <p>Opening Ayngaran Stores…</p>
       </div>
+    );
+  if (!sampleModeEnabled && !user)
+    return (
+      <main className="login-screen">
+        <div className="login-card">
+          <LoginForm
+            notice={error}
+            onSignedIn={async (signedInUser) => {
+              setUser(signedInUser);
+              await switchLive();
+            }}
+          />
+        </div>
+      </main>
     );
   return (
     <div
@@ -2209,6 +2223,7 @@ export default function StoreApp() {
                 </form>
               </section>
               <div>
+                {mode === "live" && user && <UserManagement key={user.id} />}
                 <section className="panel">
                   <div className="panel-heading">
                     <div>
@@ -3173,97 +3188,12 @@ export default function StoreApp() {
                   </button>
                 </>
               ) : (
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    const sb = getSupabase();
-                    if (!sb) {
-                      setError(
-                        "Store sign-in is not configured yet. Contact the store administrator.",
-                      );
-                      return;
-                    }
-                    setBusy(true);
-                    setError("");
-                    const fd = new FormData(e.currentTarget);
-                    const credentials = {
-                      email: String(fd.get("email")),
-                      password: String(fd.get("password")),
-                    };
-                    try {
-                      const result =
-                        authMode === "signin"
-                          ? await sb.auth.signInWithPassword(credentials)
-                          : await sb.auth.signUp(credentials);
-                      if (result.error) throw result.error;
-                      if (result.data.session) {
-                        setUser(result.data.user);
-                        await switchLive();
-                      } else
-                        notify(
-                          "Check your email to confirm your account, then sign in.",
-                        );
-                    } catch (e: any) {
-                      setError(authErrorMessage(e));
-                    } finally {
-                      setBusy(false);
-                    }
+                <LoginForm
+                  onSignedIn={async (signedInUser) => {
+                    setUser(signedInUser);
+                    await switchLive();
                   }}
-                >
-                  <div className="auth-intro">
-                    <span className="brand-mark">
-                      <GaneshMark />
-                    </span>
-                    <h3>
-                      {authMode === "signin"
-                        ? "Welcome to your store"
-                        : "Create your owner account"}
-                    </h3>
-                    <p>
-                      Sign in to keep your products, bills and accounts securely
-                      in Supabase.
-                    </p>
-                  </div>
-                  <Field label="Email">
-                    <input
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      required
-                    />
-                  </Field>
-                  <Field label="Password">
-                    <input
-                      name="password"
-                      type="password"
-                      minLength={8}
-                      autoComplete={
-                        authMode === "signin"
-                          ? "current-password"
-                          : "new-password"
-                      }
-                      required
-                    />
-                  </Field>
-                  <button className="primary wide" disabled={busy}>
-                    {busy
-                      ? "Please wait…"
-                      : authMode === "signin"
-                        ? "Sign in to live store"
-                        : "Create account"}
-                  </button>
-                  <button
-                    type="button"
-                    className="text-button centered"
-                    onClick={() =>
-                      setAuthMode(authMode === "signin" ? "signup" : "signin")
-                    }
-                  >
-                    {authMode === "signin"
-                      ? "New here? Create an account"
-                      : "Already have an account? Sign in"}
-                  </button>
-                </form>
+                />
               )}
               <p className="secure-note">
                 Your products, bills and accounts belong to your signed-in

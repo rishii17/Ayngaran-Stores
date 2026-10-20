@@ -13,7 +13,7 @@
     "seed:generate": "node scripts/generate-seed.mjs",
     "verify": "npm run check:env && npm test && npm run test:database && npm run build && npm run typecheck",
     "test:browser": "node tests/browser/release.mjs && node tests/browser/scanner.mjs && node tests/browser/purchase-calculator.mjs && node tests/browser/scanner-formats.mjs && node tests/browser/hardware-scanner.mjs && node tests/browser/purchase-comparison.mjs && node tests/browser/supplier-sample.mjs && node tests/browser/pos-keyboard.mjs && node tests/browser/billing-viewport.mjs && node tests/browser/partial-payment.mjs && node tests/browser/customer-sorting.mjs",
-    "test:production": "node tests/browser/production.mjs",
+    "test:production": "node tests/browser/production.mjs && node tests/browser/hydration.mjs",
     "audit:security": "npm audit --audit-level=moderate",
     "prebuild": "node --env-file-if-exists=.env.local scripts/check-env.mjs --allow-missing",
     "check:auth": "node --env-file-if-exists=.env.local scripts/check-auth.mjs",

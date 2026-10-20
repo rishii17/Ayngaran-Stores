@@ -61,3 +61,18 @@ This runs all eleven browser scripts, including customer sorting, partial paymen
 For the production view, stop the test service, unset/disable sample mode, rebuild with your hosting configuration, start again, then run `npm run test:production`. Its default smoke check verifies sign-in, no sample products or loaders, preserved old browser sample backups, response headers and unauthenticated API denial. The optional `PRODUCTION_TEST_SUPABASE_URL` test setting enables mocked session restoration and customer sorting against an isolated public test project URL; it is not a live database test.
 
 This release was checked with Node.js 24.19.0 and system Chromium. The local security review and dependency audit do not verify your hosting configuration or a live Supabase account. Real-owner checkout, production concurrency, and hardware acceptance must be completed on the deployed environment.
+
+## Login-only access and administrator-created accounts
+
+The public page contains only sign-in. It has no registration form, and the store interface is hidden while signed out. To block direct registration requests as well, open the Supabase dashboard → Authentication → Sign In / Providers and turn off **Allow new users to sign up**. Hiding the website registration form alone cannot change Supabase's public Auth settings. `npm run check:auth` now also checks that public sign-ups are disabled.
+
+Create the first administrator account manually in Supabase Authentication → Users (or use your existing owner). In the hosting environment set:
+
+- `AYNGARAN_ADMIN_USER_IDS`: that administrator's Supabase user UUID. For multiple trusted administrators, separate UUIDs with commas. This is checked by the server after verifying their login; account metadata cannot grant this permission.
+- `SUPABASE_SECRET_KEY`: the project's Supabase secret key, or its legacy service-role key, stored as a **server-only hosting secret**. Never prefix this variable with `NEXT_PUBLIC_`, put it in browser code, or commit a real value. The public `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` remains the publishable key.
+
+Restart/redeploy the Node service after changing these server settings. Sign in as the administrator and open **Settings → Create user**. Enter a name, email and initial password (at least 12 characters), then share the credentials privately with that person. Administrator-created accounts are confirmed by this trusted action, so no public signup or signup email is required. The signed-in administrator's session is preserved.
+
+New accounts have separate stores, matching the existing ownership model. They do not receive administrator permissions. Only a hosting administrator can add their UUID to the administrator list. Keep at least one trusted administrator account available; ordinary users cannot create users. If the secret key is absent, the administration form is disabled; all normal store functions continue to use the caller's publishable key/JWT and owner isolation.
+
+The hydration warning reported with `__processed_…` and `bis_skin_checked` comes from extension-added attributes. The body and initial loading placeholder explicitly tolerate these attribute changes; application data hydration checks remain enabled. Test in a private browser window if an extension continues modifying deeper application markup.

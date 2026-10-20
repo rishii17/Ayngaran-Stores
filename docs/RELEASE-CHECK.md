@@ -1,3 +1,16 @@
+# Login-only access and hydration fix — 20 October 2026
+
+- The public production page now contains only email/password sign-in. The application interface is not rendered while signed out, and registration controls/API signup calls were removed from the client.
+- Settings → Create user is available only to server-configured administrators. Requests verify the caller with Supabase before checking `AYNGARAN_ADMIN_USER_IDS`. Creation uses the server-only `SUPABASE_SECRET_KEY`, cannot grant administrator permissions, returns only account ID/email, and is limited to 10 attempts per hour per administrator. New accounts keep separate stores and creation preserves the current administrator session.
+- Extension-added body and initial-loading attributes are tolerated at those specific hydration boundaries. The reported `__processed_…` / `bis_skin_checked` mutation was reproduced without a hydration warning in Next development mode and production. Application hydration checks remain enabled elsewhere.
+- Local development explicitly allows `localhost` and `127.0.0.1`, resolving Next.js's blocked dev-resource origin when using loopback IP URLs.
+
+Validation: 49 application/security tests, 4 isolated database tests, the 11 browser regression scripts, production login/admin-creation tests, development/production hydration regression checks, build and TypeScript. Dependency audit: zero known vulnerabilities. Account creation and authentication checks use isolated API fixtures, not live project credentials.
+
+Deployment must disable Supabase's **Allow new users to sign up** setting and configure the administrator UUID(s) and server-only secret. The first administrator must already exist (or be created in Supabase's dashboard). `npm run check:auth` now verifies that public signup is disabled. These hosted settings and live account creation cannot be verified from this workspace without the project's credentials. Follow [Deployment](DEPLOYMENT.md#login-only-access-and-administrator-created-accounts).
+
+---
+
 # Manual web release — 20 October 2026
 
 Current release instructions: [Deployment](DEPLOYMENT.md).

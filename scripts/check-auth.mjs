@@ -18,8 +18,13 @@ if (!process.exitCode) {
         `Supabase Auth returned HTTP ${response.status}. Check the project's status and retry.`,
       );
     }
+    const settings = await response.json();
+    if (settings.disable_signup !== true)
+      throw Error(
+        "Public registration is enabled in Supabase. Turn off Allow new users to sign up in Authentication settings. Administrators can still create users inside the app.",
+      );
     console.log(
-      "PASS: Supabase Auth accepts this URL and public key. No account was created. Restart npm run dev, or rebuild with npm run build before npm start, to update the browser's key.",
+      "PASS: Supabase Auth accepts this URL and public key, and public registration is disabled. No account was created. Restart npm run dev, or rebuild with npm run build before npm start, to update the browser's key.",
     );
   } catch (error) {
     console.error(

@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { applyAction } from "../lib/domain.mjs";
 import { loadStore, commitStore } from "./store-repository.mjs";
+import { registerUserAdmin } from "./user-admin.mjs";
 import { createBackup, validDate } from "../lib/backup.mjs";
 const text = z.string().max(500),
   num = z.number().finite();
@@ -174,6 +175,7 @@ export function createApp() {
       next(e);
     }
   });
+  registerUserAdmin(app);
   async function load(req) {
     return loadStore(req.db, req.user.id);
   }

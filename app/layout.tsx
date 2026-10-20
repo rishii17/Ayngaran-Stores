@@ -13,7 +13,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      {/* Extensions can add body attributes before React loads. */}
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }

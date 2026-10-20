@@ -2881,3 +2881,9 @@ td small {
   .table-toolbar:has(.customer-sort) { flex-wrap: wrap; }
   .table-toolbar:has(.customer-sort) .search-box { flex-basis: 100%; }
 }
+
+.login-screen { min-height: 100dvh; display: grid; place-items: center; padding: 24px; max-width: none; }
+.login-card { width: 100%; max-width: 420px; padding: 28px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+.login-card h1 { font-size: 23px; }
+.login-card label, .login-card .primary { margin-top: 18px; }
+.login-card .alert { margin-top: 14px; }

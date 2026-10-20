@@ -26,7 +26,13 @@ try {
   await page
     .getByRole("button", { name: "Sign in to live store", exact: true })
     .waitFor();
-  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+  assert.equal(await page.locator(".app-shell").count(), 0);
+  assert.equal(
+    await page
+      .getByRole("button", { name: /Create.*account|register/i })
+      .count(),
+    0,
+  );
   assert.equal(await page.locator(".demo-banner").count(), 0);
   assert.equal(await page.locator(".product-card").count(), 0);
   assert.equal(
@@ -35,25 +41,25 @@ try {
       .count(),
     0,
   );
-  await page
-    .getByRole("button", { name: "Toggle navigation", exact: true })
-    .click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
   assert.equal(
     await page
-      .getByRole("button", {
-        name: "Load dummy data into empty store",
-        exact: true,
-      })
+      .getByRole("button", { name: "Toggle navigation", exact: true })
       .count(),
     0,
   );
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  );
   assert.equal(
     await page
-      .getByRole("button", { name: "Check live connection", exact: true })
-      .count(),
-    1,
+      .getByRole("button", { name: "Sign in to live store", exact: true })
+      .isVisible(),
+    true,
   );
+  await page.setViewportSize({ width: 1280, height: 720 });
   const retained = await page.evaluate(
     () =>
       JSON.parse(localStorage.getItem("ayngaran-demo-v1")).state.products
@@ -142,6 +148,13 @@ try {
         body: JSON.stringify(user),
       }),
     );
+    await authenticated.route("**/api/admin/capabilities", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ canManageUsers: false, configured: false }),
+      }),
+    );
     await authenticated.route("**/api/state", (route) =>
       route.fulfill({
         status: 200,
@@ -176,9 +189,75 @@ try {
     await authenticated
       .getByRole("button", { name: "Settings", exact: true })
       .click();
+    assert.equal(
+      await authenticated
+        .getByRole("region", { name: "User management", exact: true })
+        .count(),
+      0,
+      "Ordinary users cannot see account creation",
+    );
+    await authenticated.unroute("**/api/admin/capabilities");
+    await authenticated.route("**/api/admin/capabilities", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ canManageUsers: true, configured: true }),
+      }),
+    );
+    await authenticated
+      .getByRole("button", { name: "Toggle navigation", exact: true })
+      .click();
+    await authenticated
+      .getByRole("button", { name: "Point of sale", exact: true })
+      .click();
+    await authenticated
+      .getByRole("button", { name: "Toggle navigation", exact: true })
+      .click();
+    await authenticated
+      .getByRole("button", { name: "Settings", exact: true })
+      .click();
+    const management = authenticated.getByRole("region", {
+      name: "User management",
+      exact: true,
+    });
+    await management.waitFor();
+    let created = 0;
+    await authenticated.route("**/api/admin/users", async (route) => {
+      const body = route.request().postDataJSON();
+      assert.equal(body.name, "New User");
+      assert.equal(body.email, "new@example.invalid");
+      assert.ok(body.password.length >= 12);
+      created++;
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({
+          user: { id: "new-user", email: "new@example.invalid" },
+        }),
+      });
+    });
+    await management.getByLabel("Name", { exact: true }).fill("New User");
+    await management
+      .getByLabel("Email", { exact: true })
+      .fill("new@example.invalid");
+    await management
+      .getByLabel("Initial password", { exact: true })
+      .fill("fixture-password-123");
+    await management
+      .getByRole("button", { name: "Create user", exact: true })
+      .click();
+    await management.getByRole("status").waitFor();
+    assert.equal(created, 1);
+    assert.equal(
+      await management
+        .getByLabel("Initial password", { exact: true })
+        .inputValue(),
+      "",
+    );
     await authenticated
       .getByRole("button", { name: "Manage account", exact: true })
       .click();
+    await authenticated.getByText(user.email, { exact: true }).waitFor();
     await authenticated.route(authURL + "/auth/v1/logout**", (route) =>
       route.fulfill({
         status: 400,
@@ -203,19 +282,16 @@ try {
       ),
       null,
     );
-    await authenticated
-      .getByRole("button", { name: "Close dialog", exact: true })
-      .click();
-    await authenticated
-      .getByRole("button", { name: "Toggle navigation", exact: true })
-      .click();
-    await authenticated
-      .getByRole("button", { name: "Customers", exact: true })
-      .click();
     assert.equal(
-      await authenticated.locator("tbody tr").count(),
+      await authenticated.locator(".app-shell").count(),
       0,
-      "Failed remote sign-out still clears the local store view",
+      "Signed-out visitors cannot inspect the store interface",
+    );
+    assert.equal(
+      await authenticated
+        .getByText("Alpha Owner Customer", { exact: true })
+        .count(),
+      0,
     );
     await authenticated.unroute(authURL + "/auth/v1/logout**");
     // Reload reapplies this page's isolated session fixture for the success case.
@@ -237,7 +313,7 @@ try {
       .waitFor();
     assert.equal(await authenticated.locator(".demo-banner").count(), 0);
     console.log(
-      "PASS: production session restoration, owner data loading, customer sorting, sign-out failure recovery and sign-out cleanup with mocked authentication/API (no live database writes).",
+      "PASS: production session restoration, customer sorting, admin-only user creation preserving the current session, and sign-out cleanup with mocked authentication/API (no live database writes).",
     );
   }
 } finally {

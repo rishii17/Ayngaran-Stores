@@ -24,7 +24,7 @@ The selected project is Ayngaran Stores. Configure `.env.local` from `.env.examp
 ## Sample and live workspaces
 
 - **Sample mode (explicit test builds only)** requires `NEXT_PUBLIC_ENABLE_SAMPLE_MODE=true` at build time. It starts with 16 products, three customers and two suppliers. Changes persist in this browser's local storage. It is labelled throughout, including printed sample receipts. This is not a cloud backup.
-- **Open live store** opens Supabase email/password sign-in. Create an owner account if needed, confirm the email if Supabase requires it, then sign in.
+- **Open live store** opens Supabase email/password sign-in. Use an existing account supplied by your administrator. Public registration is disabled; administrators create accounts inside Settings after the server settings in the deployment guide are configured.
 - Live accounts start with an empty store. Sample data is never silently imported. Explicit test builds can enable the empty-store-only dummy import; public builds hide and block sample imports.
 - Each signed-in owner has an isolated store. This release does not share stores across different staff accounts.
 - The selected live workspace is restored on reload. Failed cloud saves report an error and do not fall back to local sample storage.
@@ -190,3 +190,7 @@ Click a product or search its SKU/name and press Enter. Its bill quantity is foc
 ### Billing fits the screen
 
 Billing uses the available screen height, with the total and Charge button kept in view. The product grid and bill items scroll independently instead of extending the whole page. On phones, **View bill / Back to products** switches between the two within the same screen. Adding a product opens its quantity in the bill; Enter returns to product search. Other pages retain their normal scrolling. On unusually short screens (including when a phone keyboard reduces the viewport), the panels can scroll internally so controls remain reachable.
+
+### Login and user management
+
+Public access is login only. Signed-out visitors cannot open the application screens. Configured administrators can create users in **Settings → Create user**; each new user has a separate store. Follow the [administrator setup](docs/DEPLOYMENT.md#login-only-access-and-administrator-created-accounts) to disable Supabase public signup, configure administrator UUIDs, and supply the server-only secret. Never use the server secret as a public browser key.
