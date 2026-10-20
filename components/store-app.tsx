@@ -63,6 +63,7 @@ import CustomerPicker from "./customer-picker";
 import CustomerBills from "./customer-bills";
 import BackupPanel from "./backup-panel";
 import LoginForm from "./login-form";
+import { hydrationReadyEvent } from "../lib/extension-hydration.mjs";
 import UserManagement from "./user-management";
 import {
   VILLAGES,
@@ -275,6 +276,7 @@ export default function StoreApp() {
     setTimeout(() => setToast(""), 4000);
   };
   useEffect(() => {
+    window.dispatchEvent(new Event(hydrationReadyEvent));
     try {
       if (sampleModeEnabled) {
         const data = localStorage.getItem("ayngaran-demo-v1");

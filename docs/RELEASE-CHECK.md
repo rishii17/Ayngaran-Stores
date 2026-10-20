@@ -1,3 +1,11 @@
+# Hidden metadata hydration regression — 20 October 2026
+
+The reported `<__next_metadata_boundary__><div hidden bis_skin_checked="1">` mismatch is caused by an extension annotating a Next-owned div. The previous body/loading suppression could not cover this nested framework element. A `beforeInteractive` script now removes only that extension attribute from hidden divs before React hydration. It leaves the wrapper, metadata and application attributes intact and disconnects on app mount, with a ten-second fallback.
+
+The browser regression now annotates the actual server-rendered metadata wrapper, reproduces the original failure without this cleanup, and verifies warning-free hydration in development and production. It also checks that the cleanup stops after hydration and metadata remains present. Application/security tests, production checks, build and TypeScript pass. No business functions or login/admin permissions changed.
+
+---
+
 # Login-only access and hydration fix — 20 October 2026
 
 - The public production page now contains only email/password sign-in. The application interface is not rendered while signed out, and registration controls/API signup calls were removed from the client.
