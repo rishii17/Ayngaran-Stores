@@ -111,7 +111,11 @@ export default function PurchaseComparison({
                   <div className="muted">
                     {row.product.sku} · Stock {row.product.stock}{" "}
                     {row.product.unit}
-                    {row.product.active === false ? " · Inactive" : ""}
+                    {row.product.deletedAt
+                      ? " · Deleted"
+                      : row.product.active === false
+                        ? " · Inactive"
+                        : ""}
                   </div>
                 </td>
                 <td>{row.supplierName}</td>

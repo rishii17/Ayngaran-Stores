@@ -517,7 +517,9 @@ export default function StoreApp() {
   }));
   const total = totals(lines, discount, state.settings.taxRate);
   const quantity = money(cart.reduce((a, l) => a + l.quantity, 0));
-  const lowStock = state.products.filter((p: any) => p.stock <= p.reorder);
+  const lowStock = state.products.filter(
+    (p: any) => !p.deletedAt && p.stock <= p.reorder,
+  );
   const today = day(new Date().toISOString());
   const todaySales = state.sales.filter(
     (s: any) => !s.void && day(s.date) === today,
@@ -694,9 +696,11 @@ export default function StoreApp() {
   const tableProducts = useMemo(
     () =>
       searchItems(productIndex, tableQuery).filter(
-        (p: any) => stockFilter !== "low" || p.stock <= p.reorder,
+        (p: any) =>
+          (page !== "Products" || !p.deletedAt) &&
+          (stockFilter !== "low" || p.stock <= p.reorder),
       ),
-    [productIndex, tableQuery, stockFilter],
+    [productIndex, tableQuery, stockFilter, page],
   );
   const contacts = state[page === "Suppliers" ? "suppliers" : "customers"];
   const contactIndex = useMemo(
@@ -1505,9 +1509,9 @@ export default function StoreApp() {
               <div className="stats-grid three">
                 <Stat
                   title="Total products"
-                  value={state.products.length}
+                  value={state.products.filter((p: any) => !p.deletedAt).length}
                   icon={Package}
-                  note="Active products in your catalogue"
+                  note="Products in your catalogue"
                 />
                 <Stat
                   title="Stock value at cost"
@@ -1621,14 +1625,18 @@ export default function StoreApp() {
                             <span
                               className={
                                 "status " +
-                                (p.stock <= p.reorder ? "amber" : "green")
+                                (p.deletedAt || p.stock <= p.reorder
+                                  ? "amber"
+                                  : "green")
                               }
                             >
-                              {p.stock === 0
-                                ? "Out of stock"
-                                : p.stock <= p.reorder
-                                  ? "Low stock"
-                                  : "In stock"}
+                              {p.deletedAt
+                                ? "Deleted"
+                                : p.stock === 0
+                                  ? "Out of stock"
+                                  : p.stock <= p.reorder
+                                    ? "Low stock"
+                                    : "In stock"}
                             </span>
                           </td>
                           <td>
@@ -1662,6 +1670,20 @@ export default function StoreApp() {
                               {page === "Products" ? "Edit" : "Adjust"}{" "}
                               <ChevronRight size={14} />
                             </button>
+                            {page === "Products" && !p.deletedAt && (
+                              <button
+                                className="text-button danger-text"
+                                aria-label={"Delete " + p.name}
+                                onClick={() =>
+                                  openForm("deleteProduct", {
+                                    productId: p.id,
+                                    confirm: "",
+                                  })
+                                }
+                              >
+                                <Trash2 size={14} /> Delete
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -2325,6 +2347,7 @@ export default function StoreApp() {
                 seed: "Load dummy data",
                 price: "Update product price",
                 product: form.id ? "Edit product" : "Add a new product",
+                deleteProduct: "Delete product?",
                 customer: form.id ? "Edit customer" : "Add a customer",
                 supplier: form.id ? "Edit supplier" : "Add a supplier",
                 scanner: "Scan a barcode",
@@ -2431,6 +2454,90 @@ export default function StoreApp() {
               }}
             />
           )}
+          {modal === "deleteProduct" &&
+            (() => {
+              const product = state.products.find(
+                (p: any) => p.id === form.productId,
+              );
+              const inCart = cart.some(
+                (line) => line.productId === form.productId,
+              );
+              const inHeld = state.held.some((bill: any) =>
+                bill.items?.some(
+                  (line: any) => line.productId === form.productId,
+                ),
+              );
+              return (
+                <form
+                  onSubmit={async (event) => {
+                    event.preventDefault();
+                    if (!product || inCart || inHeld) return;
+                    const result = await act("deleteProduct", {
+                      productId: product.id,
+                      confirm: form.confirm,
+                    });
+                    if (result) {
+                      close();
+                      notify("Product deleted from the catalogue");
+                    }
+                  }}
+                >
+                  <p>
+                    <strong>{product?.name || "Product unavailable"}</strong>
+                  </p>
+                  <p className="delete-product-note">
+                    This removes the product from Products, billing and new
+                    purchases. Past bills, purchases and stock movements are
+                    preserved. Any remaining stock ({product?.stock ?? 0}{" "}
+                    {product?.unit}) stays visible in Inventory.
+                  </p>
+                  {inCart && (
+                    <p role="alert" className="alert">
+                      Remove this product from the current bill before deleting
+                      it.
+                    </p>
+                  )}
+                  {inHeld && (
+                    <p role="alert" className="alert">
+                      Remove this product from held bills before deleting it.
+                    </p>
+                  )}
+                  <Field label="Type DELETE to confirm">
+                    <input
+                      autoComplete="off"
+                      value={form.confirm}
+                      onChange={(event) =>
+                        update("confirm", event.target.value)
+                      }
+                      required
+                    />
+                  </Field>
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      className="button"
+                      disabled={busy}
+                      onClick={close}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="primary"
+                      disabled={
+                        busy ||
+                        !product ||
+                        inCart ||
+                        inHeld ||
+                        form.confirm !== "DELETE"
+                      }
+                    >
+                      Delete product
+                    </button>
+                  </div>
+                </form>
+              );
+            })()}
           {modal === "product" && (
             <form onSubmit={submitForm}>
               <div className="form-section-title">

@@ -56,7 +56,7 @@ In another terminal:
 npm run test:browser
 ```
 
-This runs all eleven browser scripts, including customer sorting, partial payments, scanning and viewport checks. Set `POS_TEST_URL` if the service uses a different local origin.
+This runs all twelve browser scripts, including product deletion, customer sorting, partial payments, scanning and viewport checks. Set `POS_TEST_URL` if the service uses a different local origin.
 
 For the production view, stop the test service, unset/disable sample mode, rebuild with your hosting configuration, start again, then run `npm run test:production`. Its default smoke check verifies sign-in, no sample products or loaders, preserved old browser sample backups, response headers and unauthenticated API denial. The optional `PRODUCTION_TEST_SUPABASE_URL` test setting enables mocked session restoration and customer sorting against an isolated public test project URL; it is not a live database test.
 
@@ -76,3 +76,7 @@ Restart/redeploy the Node service after changing these server settings. Sign in 
 New accounts have separate stores, matching the existing ownership model. They do not receive administrator permissions. Only a hosting administrator can add their UUID to the administrator list. Keep at least one trusted administrator account available; ordinary users cannot create users. If the secret key is absent, the administration form is disabled; all normal store functions continue to use the caller's publishable key/JWT and owner isolation.
 
 The hydration warning reported with `__processed_…` and `bis_skin_checked` comes from extension-added attributes. The body and initial loading placeholder explicitly tolerate these attribute changes. Next.js also creates a hidden metadata div outside application JSX: a small before-hydration script removes only `bis_skin_checked` from hidden divs, leaving metadata and the `hidden` attribute intact. Its observer stops when the app mounts (with a ten-second fallback), so it does not monitor application DOM changes permanently. Application data hydration checks remain enabled. Test in a private browser window if an extension continues modifying deeper application markup.
+
+## Product deletion release
+
+Deploy the latest `main` commit with the same live-mode settings. No new migration or environment variable is required for product deletion; it updates the existing product's active state and stores the deletion timestamp in its existing metadata. In a suitable owner test account, confirm deletion removes the product from the selling catalogue and new purchases, preserves prior receipts/history and stock value, and survives a reload. Remaining stock is visible in Inventory with a Deleted status. SKU/barcode identifiers remain reserved. Do not purge historical product rows directly from the database because transactions reference them.

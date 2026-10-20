@@ -1,3 +1,11 @@
+# Product deletion release — 20 October 2026
+
+Products now have a Delete action with a typed DELETE confirmation and cancellation. Deletion removes an item from the selling catalogue, scanner matches and new purchases. Referenced product rows, transaction snapshots and stock quantities remain intact; remaining stock is visible in Inventory with a Deleted status. Current/held bill safeguards prevent accidental removal of an in-progress line. Stale edits, price updates, checkout, purchases and new holds cannot reactivate or use a deleted product. Old sale voids and inventory adjustments remain available.
+
+The change uses existing owner-scoped updates and metadata, so no additional database migration or permission is required. Test coverage includes repeat deletion, confirmation validation, held/current bills, historical integrity, database round-trip/foreign keys, sale voids, scanner/purchase exclusion and browser reloads. Validation: 51 application/security tests, 5 database tests and all 12 browser scripts passed; production build/type checks and login/hydration checks passed; dependency audit reported zero vulnerabilities. Public releases retain login-only access with sample mode disabled. Follow [Deployment](DEPLOYMENT.md) for manual deployment and the existing Supabase/user-administration settings.
+
+---
+
 # Hidden metadata hydration regression — 20 October 2026
 
 The reported `<__next_metadata_boundary__><div hidden bis_skin_checked="1">` mismatch is caused by an extension annotating a Next-owned div. The previous body/loading suppression could not cover this nested framework element. A `beforeInteractive` script now removes only that extension attribute from hidden divs before React hydration. It leaves the wrapper, metadata and application attributes intact and disconnects on app mount, with a ten-second fallback.

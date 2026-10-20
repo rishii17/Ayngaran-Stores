@@ -194,3 +194,9 @@ Billing uses the available screen height, with the total and Charge button kept 
 ### Login and user management
 
 Public access is login only. Signed-out visitors cannot open the application screens. Configured administrators can create users in **Settings → Create user**; each new user has a separate store. Follow the [administrator setup](docs/DEPLOYMENT.md#login-only-access-and-administrator-created-accounts) to disable Supabase public signup, configure administrator UUIDs, and supply the server-only secret. Never use the server secret as a public browser key.
+
+### Delete a product
+
+On **Products**, choose **Delete** beside a product, review the confirmation, type `DELETE`, and click **Delete product**. Cancel leaves the product unchanged. Remove the product from the current bill or held bills first.
+
+Deleted products disappear from Products, billing searches/scanners and new purchase selections. Existing bills, purchases, prices and stock movements keep their original records. Any remaining stock stays visible in **Inventory**, labelled **Deleted**, and remains included in stock value. Inventory adjustments and voiding past sales continue to work. The product's original SKU/barcode remains reserved for historical consistency. Deletion is an update to the existing owner-scoped product record; no database migration or extra database permissions are required.

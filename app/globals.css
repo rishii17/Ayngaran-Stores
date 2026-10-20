@@ -2887,3 +2887,6 @@ td small {
 .login-card h1 { font-size: 23px; }
 .login-card label, .login-card .primary { margin-top: 18px; }
 .login-card .alert { margin-top: 14px; }
+
+.danger-text { color: #a33e34; }
+.delete-product-note { margin: 14px 0; line-height: 1.6; }

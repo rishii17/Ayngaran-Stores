@@ -49,6 +49,10 @@ const schemas = {
     reason: text.min(1),
   }),
   product,
+  deleteProduct: z.object({
+    productId: text.min(1),
+    confirm: z.literal("DELETE"),
+  }),
   customer: contact.extend({ creditLimit: num.nonnegative() }),
   supplier: contact,
   checkout: z.object({

@@ -486,3 +486,46 @@ test("migration rejects inconsistent legacy data atomically instead of dropping 
     await db.close();
   }
 });
+
+test("catalogue deletion round-trips without deleting referenced products or their inventory", async () => {
+  let initial = seedState();
+  const id = initial.products[0].id;
+  initial = applyAction(initial, {
+    type: "checkout",
+    payload: {
+      items: [{ productId: id, quantity: 1 }],
+      discount: 0,
+      method: "cash",
+      tendered: 240,
+    },
+  }).state;
+  const db = await setup(initial);
+  try {
+    await db.exec(migration);
+    await signIn(db);
+    let current = await load(db);
+    await commit(db, current, "deleteProduct", {
+      productId: id,
+      confirm: "DELETE",
+    });
+    const deleted = await load(db);
+    const product = deleted.state.products.find((p) => p.id === id);
+    assert.equal(product.active, false);
+    assert.ok(product.deletedAt);
+    assert.equal(product.stock, initial.products[0].stock);
+    assert.deepEqual(deleted.state.sales, initial.sales);
+    assert.deepEqual(deleted.state.movements, initial.movements);
+    await commit(db, deleted, "void", {
+      id: deleted.state.sales[0].id,
+      reason: "Return after deletion",
+    });
+    current = await load(db);
+    assert.equal(
+      current.state.products.find((p) => p.id === id).stock,
+      initial.products[0].stock + 1,
+    );
+    assert.equal(current.state.products.find((p) => p.id === id).active, false);
+  } finally {
+    await db.close();
+  }
+});
