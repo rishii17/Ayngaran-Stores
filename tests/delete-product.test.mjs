@@ -32,6 +32,15 @@ test("product deletion preserves historical transactions and stock while prevent
       tendered: 480,
     },
   }).state;
+  assert.throws(() => remove(state, id), /stock to zero/);
+  state = applyAction(state, {
+    type: "adjust",
+    payload: {
+      productId: id,
+      quantity: -state.products[0].stock,
+      reason: "Close inventory: damaged stock removed",
+    },
+  }).state;
   const before = structuredClone(state);
   const result = remove(state, id);
   const product = result.state.products.find((p) => p.id === id);
@@ -129,10 +138,28 @@ test("product deletion requires confirmation and cannot leave a held bill with a
       discount: 0,
     },
   }).state;
-  assert.throws(() => remove(held, id), /held bills/);
-  const released = applyAction(held, {
+  const closed = applyAction(held, {
+    type: "adjust",
+    payload: {
+      productId: id,
+      quantity: -held.products[0].stock,
+      reason: "Inventory closure",
+    },
+  }).state;
+  assert.throws(() => remove(closed, id), /held bills/);
+  const released = applyAction(closed, {
     type: "deleteHold",
     payload: { id: held.held[0].id },
   }).state;
   assert.equal(remove(released, id).state.products[0].active, false);
+});
+
+test("deletion rejects nonzero inventory, including fractional and invalid stock", () => {
+  for (const stock of [1, 0.01, -1, undefined, NaN]) {
+    const state = seedState();
+    state.products[0].stock = stock;
+    const before = structuredClone(state);
+    assert.throws(() => remove(state, state.products[0].id), /stock to zero/);
+    assert.deepEqual(state, before);
+  }
 });

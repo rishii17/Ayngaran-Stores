@@ -56,6 +56,43 @@ try {
     .click();
   await navigate("Products");
   await deletion().click();
+  await page
+    .getByRole("alert")
+    .filter({ hasText: "Stock remaining:" })
+    .waitFor();
+  await page
+    .getByLabel("Type DELETE to confirm", { exact: true })
+    .fill("DELETE");
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Delete product", exact: true })
+      .isDisabled(),
+    true,
+  );
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await navigate("Inventory");
+  const stockRow = page
+    .locator(".panel")
+    .filter({ has: page.getByPlaceholder("Search products, SKU or barcode") })
+    .locator("tbody tr")
+    .filter({ hasText: product.sku });
+  await stockRow.getByRole("button", { name: "Adjust", exact: true }).click();
+  await page
+    .getByLabel("Quantity change *", { exact: true })
+    .fill(String(-product.stock));
+  await page
+    .getByLabel("Reason *", { exact: true })
+    .fill("Close inventory: damaged stock removed");
+  await page
+    .getByRole("button", { name: "Save stock adjustment", exact: true })
+    .click();
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  const closed = await page.evaluate(
+    () => JSON.parse(localStorage.getItem("ayngaran-demo-v1")).state,
+  );
+  assert.equal(closed.products.find((p) => p.id === product.id).stock, 0);
+  assert.equal(closed.movements.length, fixture.movements.length + 1);
+  await deletion().click();
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   assert.equal(await deletion().count(), 1);
   await deletion().click();
@@ -82,9 +119,9 @@ try {
   const deleted = state.products.find((p) => p.id === product.id);
   assert.equal(deleted.active, false);
   assert.ok(deleted.deletedAt);
-  assert.equal(deleted.stock, product.stock);
+  assert.equal(deleted.stock, 0);
   for (const key of ["sales", "purchases", "movements", "priceHistory"])
-    assert.deepEqual(state[key], fixture[key]);
+    assert.deepEqual(state[key], closed[key]);
   await navigate("Inventory");
   await page
     .getByPlaceholder("Search products, SKU or barcode")
@@ -99,7 +136,7 @@ try {
   assert.match(await inventory.innerText(), /Deleted/);
   assert.equal(
     (await inventory.locator("td").nth(4).innerText()).trim(),
-    `${product.stock} ${product.unit}`,
+    `0 ${product.unit}`,
   );
   await navigate("Point of sale");
   await page
@@ -138,7 +175,7 @@ try {
   assert.equal(await deletion().count(), 0);
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: delete confirmation/cancel/current-bill guard, catalogue and scanner removal, retained inventory/history, purchase exclusion and reload persistence.",
+    "PASS: zero-stock closure guard, recorded adjustment, Inventory deletion, confirmation/cancel/current-bill guard, catalogue and scanner removal, retained inventory/history, purchase exclusion and reload persistence.",
   );
 } finally {
   await browser.close();

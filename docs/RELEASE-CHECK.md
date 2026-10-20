@@ -1,3 +1,9 @@
+# Inventory closure before deletion — 20 October 2026
+
+Products can be deleted from Products or Inventory only when stock is exactly zero. The same rule runs in the server action, so stale clients cannot delete a product that has been restocked. Sell remaining stock or record a reasoned Inventory adjustment first. The confirmation shows remaining stock and disables deletion until inventory is closed; current and held bill checks still apply. Past bills, purchase history and the product’s inventory record remain intact. Voiding an old sale can still return stock to a deleted product without reactivating it. Previously deleted records are preserved.
+
+Validation: 52 application/security tests, 5 database tests and all 12 browser scripts passed. Production build, TypeScript, production login/hydration checks and dependency audit (zero known vulnerabilities) also passed. Coverage includes nonzero/fractional stock rejection, recorded closure, deletion from Inventory, historical preservation and reload persistence. No migration or environment change is required.
+
 # Product deletion release — 20 October 2026
 
 Products now have a Delete action with a typed DELETE confirmation and cancellation. Deletion removes an item from the selling catalogue, scanner matches and new purchases. Referenced product rows, transaction snapshots and stock quantities remain intact; remaining stock is visible in Inventory with a Deleted status. Current/held bill safeguards prevent accidental removal of an in-progress line. Stale edits, price updates, checkout, purchases and new holds cannot reactivate or use a deleted product. Old sale voids and inventory adjustments remain available.

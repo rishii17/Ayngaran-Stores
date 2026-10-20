@@ -1670,7 +1670,7 @@ export default function StoreApp() {
                               {page === "Products" ? "Edit" : "Adjust"}{" "}
                               <ChevronRight size={14} />
                             </button>
-                            {page === "Products" && !p.deletedAt && (
+                            {!p.deletedAt && (
                               <button
                                 className="text-button danger-text"
                                 aria-label={"Delete " + p.name}
@@ -2471,7 +2471,8 @@ export default function StoreApp() {
                 <form
                   onSubmit={async (event) => {
                     event.preventDefault();
-                    if (!product || inCart || inHeld) return;
+                    if (!product || product.stock !== 0 || inCart || inHeld)
+                      return;
                     const result = await act("deleteProduct", {
                       productId: product.id,
                       confirm: form.confirm,
@@ -2488,9 +2489,17 @@ export default function StoreApp() {
                   <p className="delete-product-note">
                     This removes the product from Products, billing and new
                     purchases. Past bills, purchases and stock movements are
-                    preserved. Any remaining stock ({product?.stock ?? 0}{" "}
-                    {product?.unit}) stays visible in Inventory.
+                    preserved. Close the product’s inventory by bringing stock
+                    to zero before deleting it. Its record stays visible in
+                    Inventory.
                   </p>
+                  {product && product.stock !== 0 && (
+                    <p role="alert" className="alert">
+                      Stock remaining: {product.stock} {product.unit}. Sell the
+                      remaining stock or record a stock adjustment in Inventory
+                      with a reason before deleting this product.
+                    </p>
+                  )}
                   {inCart && (
                     <p role="alert" className="alert">
                       Remove this product from the current bill before deleting
@@ -2527,6 +2536,7 @@ export default function StoreApp() {
                       disabled={
                         busy ||
                         !product ||
+                        product.stock !== 0 ||
                         inCart ||
                         inHeld ||
                         form.confirm !== "DELETE"

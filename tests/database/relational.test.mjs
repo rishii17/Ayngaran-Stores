@@ -504,6 +504,13 @@ test("catalogue deletion round-trips without deleting referenced products or the
     await db.exec(migration);
     await signIn(db);
     let current = await load(db);
+    await commit(db, current, "adjust", {
+      productId: id,
+      quantity: -current.state.products[0].stock,
+      reason: "Inventory closure",
+    });
+    current = await load(db);
+    const closed = structuredClone(current.state);
     await commit(db, current, "deleteProduct", {
       productId: id,
       confirm: "DELETE",
@@ -512,18 +519,15 @@ test("catalogue deletion round-trips without deleting referenced products or the
     const product = deleted.state.products.find((p) => p.id === id);
     assert.equal(product.active, false);
     assert.ok(product.deletedAt);
-    assert.equal(product.stock, initial.products[0].stock);
+    assert.equal(product.stock, 0);
     assert.deepEqual(deleted.state.sales, initial.sales);
-    assert.deepEqual(deleted.state.movements, initial.movements);
+    assert.deepEqual(deleted.state.movements, closed.movements);
     await commit(db, deleted, "void", {
       id: deleted.state.sales[0].id,
       reason: "Return after deletion",
     });
     current = await load(db);
-    assert.equal(
-      current.state.products.find((p) => p.id === id).stock,
-      initial.products[0].stock + 1,
-    );
+    assert.equal(current.state.products.find((p) => p.id === id).stock, 1);
     assert.equal(current.state.products.find((p) => p.id === id).active, false);
   } finally {
     await db.close();
