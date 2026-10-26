@@ -37,7 +37,6 @@ import {
   LogIn,
   LogOut,
   RefreshCw,
-  ImagePlus,
   AlertTriangle,
   Pause,
   ShoppingCart,
@@ -65,6 +64,7 @@ import BackupPanel from "./backup-panel";
 import LoginForm from "./login-form";
 import { hydrationReadyEvent } from "../lib/extension-hydration.mjs";
 import UserManagement from "./user-management";
+import ProductImageInput from "./product-image-input";
 import {
   VILLAGES,
   searchIndex,
@@ -83,7 +83,7 @@ import {
   totals,
   money,
 } from "@/lib/domain.mjs";
-import { api, csv, download, getSupabase, webp } from "@/lib/client";
+import { api, csv, download, getSupabase } from "@/lib/client";
 const fmt = (v: number) =>
   new Intl.NumberFormat("en-LK", {
     minimumFractionDigits: 2,
@@ -260,6 +260,7 @@ export default function StoreApp() {
     [sidebar, setSidebar] = useState(false),
     [reportDate, setReportDate] = useState(""),
     [reportCustomerId, setReportCustomerId] = useState("");
+  const [imageBusy, setImageBusy] = useState(false);
   const [customerSort, setCustomerSort] = useState("name-asc");
   const [mobileBill, setMobileBill] = useState(false);
   const [quantityFocus, setQuantityFocus] = useState({ id: "", sequence: 0 });
@@ -547,7 +548,7 @@ export default function StoreApp() {
     const old = cart.find((l) => l.productId === p.id);
     if ((old?.quantity || 0) + 1 > p.stock) {
       notify(`${p.name}: insufficient stock`);
-      return;
+      return false;
     }
     setCart(
       old
@@ -565,6 +566,7 @@ export default function StoreApp() {
         sequence: previous.sequence + 1,
       }));
     }
+    return true;
   }
   function setQuantity(id: string, q: number) {
     const product = state.products.find((p: any) => p.id === id);
@@ -587,8 +589,7 @@ export default function StoreApp() {
     const product = findProductByCode(state.products, value);
     setModal("");
     if (product) {
-      addProduct(product);
-      notify(`${product.name} added to bill`);
+      if (addProduct(product)) notify(`${product.name} added to bill`);
     } else {
       setQuery(value);
       notify(`No product found for ${value}`);
@@ -601,6 +602,7 @@ export default function StoreApp() {
   }
   async function submitForm(e: React.FormEvent) {
     e.preventDefault();
+    if (modal === "product" && imageBusy) return;
     const result = await act(modal, form);
     if (result) {
       if (modal === "customer" && page === "Point of sale") {
@@ -1082,7 +1084,7 @@ export default function StoreApp() {
                   </div>
                   <button
                     className="scan-button"
-                    title="Scan barcode (F4)"
+                    title="Scan barcode or QR with camera (F4)"
                     onClick={() => setModal("scanner")}
                   >
                     <ScanLine size={21} />
@@ -2350,7 +2352,7 @@ export default function StoreApp() {
                 deleteProduct: "Delete product?",
                 customer: form.id ? "Edit customer" : "Add a customer",
                 supplier: form.id ? "Edit supplier" : "Add a supplier",
-                scanner: "Scan a barcode",
+                scanner: "Scan barcode or QR",
                 productScanner: "Scan product barcode",
                 checkout: "Complete your sale",
                 calculator: "Quick calculator",
@@ -2650,46 +2652,23 @@ export default function StoreApp() {
                   </Field>
                 ))}
               </div>
-              <Field label="Product image (optional)">
-                <div className="upload-box">
-                  {form.image ? (
-                    <>
-                      <img src={form.image} alt="Product preview" />
-                      <button
-                        type="button"
-                        className="text-button"
-                        onClick={() => update("image", "")}
-                      >
-                        Remove image
-                      </button>
-                    </>
-                  ) : (
-                    <ImagePlus size={28} />
-                  )}
-                  <span>Choose a photo · automatically optimized to WebP</span>
-                  <input
-                    aria-label="Product image"
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file)
-                        try {
-                          update("image", await webp(file));
-                        } catch (err: any) {
-                          setError(err.message);
-                        }
-                    }}
-                  />
-                </div>
-              </Field>
+              <ProductImageInput
+                value={form.image || ""}
+                onChange={(image) => update("image", image)}
+                onError={setError}
+                onBusyChange={setImageBusy}
+              />
               <div className="form-actions">
                 <button type="button" className="button" onClick={close}>
                   Cancel
                 </button>
-                <button className="primary" disabled={busy}>
+                <button className="primary" disabled={busy || imageBusy}>
                   <Check size={17} />
-                  {busy ? "Saving…" : "Save product"}
+                  {busy
+                    ? "Saving…"
+                    : imageBusy
+                      ? "Optimizing photo…"
+                      : "Save product"}
                 </button>
               </div>
             </form>

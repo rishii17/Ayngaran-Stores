@@ -77,9 +77,16 @@ const browser = await chromium.launch({
 });
 try {
   for (const fixture of cases) {
-    const page = await browser.newPage();
+    const page = await browser.newPage({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    });
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
     const state = seedState();
-    state.products[0].barcode = fixture.code;
+    if (fixture.name !== "QR") state.products[0].barcode = fixture.code;
+    state.products[0].stock = 2;
     await page.addInitScript(
       ({ fixture, state }) => {
         localStorage.setItem(
@@ -145,7 +152,44 @@ try {
       ),
       true,
     );
-    console.log("PASS camera fallback: " + fixture.name);
+    await page
+      .getByLabel("Quantity of " + state.products[0].name, { exact: true })
+      .waitFor();
+    if (fixture.name === "QR") {
+      await page.getByRole("button", { name: /Back to products/ }).click();
+      await page.getByRole("button", { name: "Scan", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Charge Rs. 480.00", exact: true })
+        .waitFor();
+      assert.equal(
+        await page
+          .getByLabel("Quantity of " + state.products[0].name, { exact: true })
+          .inputValue(),
+        "2",
+      );
+      await page.getByRole("button", { name: /Back to products/ }).click();
+      await page.getByRole("button", { name: "Scan", exact: true }).click();
+      await page
+        .getByText(state.products[0].name + ": insufficient stock", {
+          exact: true,
+        })
+        .waitFor();
+      assert.equal(
+        await page
+          .getByText(state.products[0].name + " added to bill", { exact: true })
+          .count(),
+        0,
+      );
+      await page.getByRole("button", { name: /View bill/ }).click();
+      assert.equal(
+        await page
+          .getByLabel("Quantity of " + state.products[0].name, { exact: true })
+          .inputValue(),
+        "2",
+      );
+    }
+    assert.deepEqual(errors, []);
+    console.log("PASS mobile camera fallback: " + fixture.name);
     await page.close();
   }
 } finally {

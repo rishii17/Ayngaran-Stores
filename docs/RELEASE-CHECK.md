@@ -1,3 +1,15 @@
+# Mobile product photos and POS camera scanning — 26 October 2026
+
+Add/Edit Product includes **Take photo**, which requests the rear camera through the phone’s native image capture picker, plus a separate existing-photo chooser. Both use the same 600-pixel WebP optimization and validation. Saving is blocked during processing, file inputs reset for retry, and closing the form prevents late photo results from changing another form.
+
+POS Scan explicitly identifies barcode and QR support. Automated mobile camera streams exercise EAN-8, UPC-A, Code128 (including rotated bars) and QR containing a saved SKU. Successful scans add one unit, select bill quantity and stop camera tracks. Rescanning increments quantity; insufficient stock keeps the bill unchanged and displays the stock warning instead of a false success notification. Permission denial retains an actionable message and manual code entry.
+
+Security checks identified advisories in existing dependencies. Applied compatible patches: Next 16.4.3, Zod 4.6.7, body-parser 2.4.0 and ip-address 10.7.5; the lockfile records these updates. The dependency audit now reports zero known vulnerabilities.
+
+Validation passed: 52 application/security tests, 5 database tests, all 13 browser scripts, production build, TypeScript and production login/hydration checks. Production was built with sample mode disabled.
+
+Camera validation uses Chromium mobile emulation and generated camera streams, plus an image file supplied to the native capture input. Physical Android/iPhone camera behavior, lens focus and permission prompts still need a check on the manually deployed HTTPS website. No live store data or deployment was changed; existing Supabase settings remain required.
+
 # Inventory closure before deletion — 20 October 2026
 
 Products can be deleted from Products or Inventory only when stock is exactly zero. The same rule runs in the server action, so stale clients cannot delete a product that has been restocked. Sell remaining stock or record a reasoned Inventory adjustment first. The confirmation shows remaining stock and disables deletion until inventory is closed; current and held bill checks still apply. Past bills, purchase history and the product’s inventory record remain intact. Voiding an old sale can still return stock to a deleted product without reactivating it. Previously deleted records are preserved.
