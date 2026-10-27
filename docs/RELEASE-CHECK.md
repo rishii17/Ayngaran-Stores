@@ -1,3 +1,13 @@
+# Product discounts and transparent billing — 27 October 2026
+
+Products support a saved fixed LKR discount per unit or a percentage of the original selling price. POS defaults apply on addition; each bill line can override them without editing the product. Repeated scans retain the selected discount. Cards and bill lines show original/discounted unit prices; original subtotal, product savings, additional bill discount, total discounts and final payable amount are shown in the bill and printed receipt. Unit discounts round to cents before quantity-based line discounts round to cents. Tax applies after all discounts.
+
+Server actions validate discount types, precision and limits, recompute prices/costs from the owner’s product catalogue, and reject conflicting duplicate-line discounts. Checkout stores original prices/costs and discount snapshots. The existing sale discount column stores combined savings, so existing profit and SQL reports continue subtracting all discounts once. Held bills retain their selected discounts; legacy holds retain zero product discounts. Additional bill discounts are capped to the remaining payable subtotal. Product edits, price changes, purchases, credit balances, stock movements and voiding retain their existing rules. Excel exports include original prices, line discounts and final amounts.
+
+The new product, sale and item fields round-trip through existing normalized JSON metadata; no database migration or new environment variables are required. Existing receipts retain their previous figures. Production remains login-only with sample mode disabled.
+
+Validation passed: 58 application/security/API tests, 6 database tests, all 14 browser scripts, the final production build, TypeScript and production login/hydration checks. The dedicated discount browser test also checks small-screen checkout, legacy holds, receipt/reload and bill-discount capping. Dependency audit: zero known vulnerabilities. API/database tests use local fixtures; no live Supabase records were changed and no deployment was performed.
+
 # Mobile product photos and POS camera scanning — 26 October 2026
 
 Add/Edit Product includes **Take photo**, which requests the rear camera through the phone’s native image capture picker, plus a separate existing-photo chooser. Both use the same 600-pixel WebP optimization and validation. Saving is blocked during processing, file inputs reset for retry, and closing the form prevents late photo results from changing another form.

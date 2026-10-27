@@ -81,6 +81,7 @@ import {
   customerBalance,
   supplierBalance,
   totals,
+  linePricing,
   money,
 } from "@/lib/domain.mjs";
 import { api, csv, download, getSupabase } from "@/lib/client";
@@ -130,6 +131,8 @@ const blankProduct = {
   barcode: "",
   category: "Rice & grains",
   price: 0,
+  discountType: "amount",
+  discountValue: 0,
   cost: 0,
   stock: 0,
   reorder: 10,
@@ -512,11 +515,19 @@ export default function StoreApp() {
       setBusy(false);
     }
   }
-  const lines = cart.map((l) => ({
-    ...state.products.find((p: any) => p.id === l.productId),
-    ...l,
-  }));
+  const lines = cart.map((l) => {
+    const line = {
+      ...state.products.find((p: any) => p.id === l.productId),
+      ...l,
+    };
+    return { ...line, ...linePricing(line) };
+  });
   const total = totals(lines, discount, state.settings.taxRate);
+  useEffect(() => {
+    setDiscount((current) =>
+      Math.min(current, money(total.subtotal - total.productDiscount)),
+    );
+  }, [total.subtotal, total.productDiscount]);
   const quantity = money(cart.reduce((a, l) => a + l.quantity, 0));
   const lowStock = state.products.filter(
     (p: any) => !p.deletedAt && p.stock <= p.reorder,
@@ -557,7 +568,15 @@ export default function StoreApp() {
               ? { ...l, quantity: money(l.quantity + 1) }
               : l,
           )
-        : [...cart, { productId: p.id, quantity: 1 }],
+        : [
+            ...cart,
+            {
+              productId: p.id,
+              quantity: 1,
+              discountType: p.discountType || "amount",
+              discountValue: p.discountValue || 0,
+            },
+          ],
     );
     if (focusQuantity) {
       setMobileBill(true);
@@ -567,6 +586,23 @@ export default function StoreApp() {
       }));
     }
     return true;
+  }
+  function setLineDiscount(id: string, type: string, value: number) {
+    const product = state.products.find((p: any) => p.id === id);
+    if (!product) return;
+    const amount = Number.isFinite(value)
+      ? Math.min(
+          type === "percent" ? 100 : product.price,
+          Math.max(0, money(value)),
+        )
+      : 0;
+    setCart((current) =>
+      current.map((line) =>
+        line.productId === id
+          ? { ...line, discountType: type, discountValue: amount }
+          : line,
+      ),
+    );
   }
   function setQuantity(id: string, q: number) {
     const product = state.products.find((p: any) => p.id === id);
@@ -646,7 +682,7 @@ export default function StoreApp() {
     const response = await act("checkout", {
       items: cart,
       customerId: customerId || null,
-      discount,
+      discount: total.billDiscount,
       method,
       tendered: Number(tendered) || 0,
       heldId,
@@ -665,7 +701,7 @@ export default function StoreApp() {
     const result = await act("hold", {
       items: cart,
       customerId: customerId || null,
-      discount,
+      discount: total.billDiscount,
       label: selectedCustomer?.name || `Walk-in · ${cart.length} items`,
     });
     if (result) {
@@ -1145,7 +1181,13 @@ export default function StoreApp() {
                         </h3>
                         <div className="product-bottom">
                           <strong>
-                            <small>Rs.</small> {fmt(p.price)}
+                            <small>Rs.</small>{" "}
+                            {fmt(linePricing({ ...p, quantity: 1 }).netPrice)}
+                            {!!p.discountValue && (
+                              <del className="original-price">
+                                Rs. {fmt(p.price)}
+                              </del>
+                            )}
                           </strong>
                           <span>/ {p.unit}</span>
                         </div>
@@ -1254,8 +1296,48 @@ export default function StoreApp() {
                         </div>
                         <div className="bill-item-meta">
                           <span>
-                            Rs. {fmt(l.price)} / {l.unit}
+                            {l.discountAmount > 0 && (
+                              <del>Rs. {fmt(l.price)}</del>
+                            )}{" "}
+                            Rs. {fmt(l.netPrice)} / {l.unit}
                           </span>
+                          {l.discountAmount > 0 && (
+                            <span>Save Rs. {fmt(l.discountAmount)}</span>
+                          )}
+                        </div>
+                        <div className="line-discount-controls">
+                          <select
+                            aria-label={"Discount type for " + l.name}
+                            value={l.discountType || "amount"}
+                            onChange={(event) =>
+                              setLineDiscount(
+                                l.productId,
+                                event.target.value,
+                                0,
+                              )
+                            }
+                          >
+                            <option value="amount">
+                              Discount Rs. / {l.unit}
+                            </option>
+                            <option value="percent">Discount %</option>
+                          </select>
+                          <input
+                            aria-label={"Discount value for " + l.name}
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            max={l.discountType === "percent" ? 100 : l.price}
+                            value={l.discountValue || ""}
+                            placeholder="0"
+                            onChange={(event) =>
+                              setLineDiscount(
+                                l.productId,
+                                l.discountType || "amount",
+                                Number(event.target.value),
+                              )
+                            }
+                          />
                         </div>
                         <div className="bill-item-bottom">
                           <div className="quantity-control">
@@ -1292,7 +1374,7 @@ export default function StoreApp() {
                               <Plus size={13} />
                             </button>
                           </div>
-                          <strong>{fmt(l.price * l.quantity)}</strong>
+                          <strong>{fmt(l.lineTotal)}</strong>
                         </div>
                         <div
                           className="quantity-presets"
@@ -1350,20 +1432,37 @@ export default function StoreApp() {
                   </div>
                   <div>
                     <label htmlFor="discount">
-                      Discount <span className="muted">LKR</span>
+                      Bill discount <span className="muted">LKR</span>
                     </label>
                     <input
                       id="discount"
                       type="number"
                       min="0"
-                      max={total.subtotal}
+                      max={money(total.subtotal - total.productDiscount)}
                       value={discount || ""}
                       placeholder="0.00"
                       onChange={(e) =>
-                        setDiscount(Math.max(0, Number(e.target.value)))
+                        setDiscount(
+                          Math.min(
+                            money(total.subtotal - total.productDiscount),
+                            Math.max(0, Number(e.target.value)),
+                          ),
+                        )
                       }
                     />
                   </div>
+                  {total.productDiscount > 0 && (
+                    <div>
+                      <span>Product discounts</span>
+                      <strong>− Rs. {fmt(total.productDiscount)}</strong>
+                    </div>
+                  )}
+                  {total.discount > 0 && (
+                    <div>
+                      <span>Total discounts</span>
+                      <strong>− Rs. {fmt(total.discount)}</strong>
+                    </div>
+                  )}
                   <div>
                     <span>Tax ({state.settings.taxRate}%)</span>
                     <strong>Rs. {fmt(total.tax)}</strong>
@@ -2652,6 +2751,38 @@ export default function StoreApp() {
                   </Field>
                 ))}
               </div>
+              <div className="form-section-title">
+                Default product discount{" "}
+                <span>Applied per unit when added to a bill</span>
+              </div>
+              <div className="form-grid">
+                <Field label="Discount type">
+                  <select
+                    aria-label="Discount type"
+                    value={form.discountType || "amount"}
+                    onChange={(event) => {
+                      update("discountType", event.target.value);
+                      update("discountValue", 0);
+                    }}
+                  >
+                    <option value="amount">Amount (LKR per unit)</option>
+                    <option value="percent">Percentage (%)</option>
+                  </select>
+                </Field>
+                <Field label="Discount value">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    max={form.discountType === "percent" ? 100 : form.price}
+                    value={form.discountValue || ""}
+                    placeholder="0"
+                    onChange={(event) =>
+                      update("discountValue", Number(event.target.value))
+                    }
+                  />
+                </Field>
+              </div>
               <ProductImageInput
                 value={form.image || ""}
                 onChange={(image) => update("image", image)}
@@ -2887,7 +3018,13 @@ export default function StoreApp() {
                     className="button"
                     disabled={cart.length > 0 || busy}
                     onClick={() => {
-                      setCart(h.items);
+                      setCart(
+                        h.items.map((line: any) => ({
+                          ...line,
+                          discountType: line.discountType ?? "amount",
+                          discountValue: line.discountValue ?? 0,
+                        })),
+                      );
                       setCustomerId(h.customerId || "");
                       setDiscount(h.discount);
                       setHeldId(h.id);
@@ -3509,11 +3646,25 @@ function Receipt({
                   )}
                 </span>
                 <small>
-                  {fmt(l.price)} / {l.unit}
+                  Original: {fmt(l.price)} / {l.unit}
                 </small>
+                {linePricing(l).discountAmount > 0 && (
+                  <>
+                    <small>
+                      Discount:{" "}
+                      {l.discountType === "percent"
+                        ? `${l.discountValue}%`
+                        : `Rs. ${fmt(l.discountValue)} / ${l.unit}`}{" "}
+                      · −{fmt(linePricing(l).discountAmount)}
+                    </small>
+                    <small>
+                      After discount: {fmt(linePricing(l).netPrice)} / {l.unit}
+                    </small>
+                  </>
+                )}
               </td>
               <td>{l.quantity}</td>
-              <td>{fmt(l.quantity * l.price)}</td>
+              <td>{fmt(linePricing(l).lineTotal)}</td>
             </tr>
           ))}
         </tbody>
@@ -3523,8 +3674,18 @@ function Receipt({
           <span>Subtotal</span>
           <span>{fmt(sale.subtotal)}</span>
         </div>
+        {sale.productDiscount > 0 && (
+          <div>
+            <span>Product discounts</span>
+            <span>−{fmt(sale.productDiscount)}</span>
+          </div>
+        )}
         <div>
-          <span>Discount</span>
+          <span>Bill discount</span>
+          <span>−{fmt(sale.billDiscount ?? sale.discount)}</span>
+        </div>
+        <div>
+          <span>Total discounts</span>
           <span>−{fmt(sale.discount)}</span>
         </div>
         <div>

@@ -533,3 +533,56 @@ test("catalogue deletion round-trips without deleting referenced products or the
     await db.close();
   }
 });
+
+test("product and bill discounts round-trip through normalized metadata and SQL profit reports", async () => {
+  const initial = seedState();
+  initial.settings.taxRate = 10;
+  const db = await setup(initial);
+  try {
+    await db.exec(migration);
+    await signIn(db);
+    let current = await load(db);
+    const product = current.state.products[0];
+    await commit(db, current, "product", {
+      ...product,
+      discountType: "percent",
+      discountValue: 10,
+    });
+    current = await load(db);
+    assert.equal(current.state.products[0].discountValue, 10);
+    await commit(db, current, "hold", {
+      items: [{ productId: product.id, quantity: 2 }],
+      discount: 12,
+      label: "Discount test",
+    });
+    current = await load(db);
+    const held = current.state.held[0];
+    assert.equal(held.items[0].discountValue, 10);
+    await commit(db, current, "checkout", {
+      items: held.items,
+      discount: held.discount,
+      heldId: held.id,
+      method: "cash",
+      tendered: 500,
+    });
+    current = await load(db);
+    const sale = current.state.sales[0];
+    assert.equal(sale.subtotal, 480);
+    assert.equal(sale.discount, 60);
+    assert.equal(sale.productDiscount, 48);
+    assert.equal(sale.billDiscount, 12);
+    assert.equal(sale.total, 462);
+    assert.equal(sale.items[0].price, 240);
+    assert.equal(sale.items[0].netPrice, 216);
+    assert.equal(sale.items[0].discountValue, 10);
+    assert.equal(sale.items[0].lineTotal, 432);
+    assert.equal(current.state.held.length, 0);
+    const report = (
+      await db.query("select gross_profit from public.ayngaran_daily_sales")
+    ).rows[0];
+    assert.equal(Number(report.gross_profit), 10);
+    assert.equal(grossProfit(sale), 10);
+  } finally {
+    await db.close();
+  }
+});

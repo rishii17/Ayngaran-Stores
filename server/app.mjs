@@ -9,7 +9,17 @@ import { registerUserAdmin } from "./user-admin.mjs";
 import { createBackup, validDate } from "../lib/backup.mjs";
 const text = z.string().max(500),
   num = z.number().finite();
+const discountFields = {
+  discountType: z.enum(["amount", "percent"]).optional(),
+  discountValue: num.nonnegative().optional(),
+};
+const saleLine = z.object({
+  productId: z.string(),
+  quantity: num.positive(),
+  ...discountFields,
+});
 const product = z.object({
+  ...discountFields,
   id: z.string().optional(),
   name: text.min(1),
   tamil: text.default(""),
@@ -56,10 +66,7 @@ const schemas = {
   customer: contact.extend({ creditLimit: num.nonnegative() }),
   supplier: contact,
   checkout: z.object({
-    items: z
-      .array(z.object({ productId: z.string(), quantity: num.positive() }))
-      .min(1)
-      .max(500),
+    items: z.array(saleLine).min(1).max(500),
     customerId: z.string().nullable().optional(),
     method: z.enum(["cash", "card", "credit"]),
     discount: num.nonnegative(),
@@ -105,9 +112,7 @@ const schemas = {
     reason: text.min(1),
   }),
   hold: z.object({
-    items: z
-      .array(z.object({ productId: z.string(), quantity: num.positive() }))
-      .min(1),
+    items: z.array(saleLine).min(1),
     customerId: z.string().nullable().optional(),
     discount: num.nonnegative(),
     label: text,

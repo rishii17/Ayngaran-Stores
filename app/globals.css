@@ -2890,3 +2890,27 @@ td small {
 
 .danger-text { color: #a33e34; }
 .delete-product-note { margin: 14px 0; line-height: 1.6; }
+
+.original-price {
+  display: block;
+  color: #806f63;
+  font-size: 10px;
+  font-weight: 400;
+}
+.line-discount-controls {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0;
+}
+.line-discount-controls select {
+  flex: 1;
+  min-width: 0;
+}
+.line-discount-controls input {
+  width: 80px;
+}
+.line-discount-controls input,
+.line-discount-controls select {
+  padding: 5px;
+  font-size: 11px;
+}

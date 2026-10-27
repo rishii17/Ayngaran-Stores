@@ -240,6 +240,8 @@ test("held bill is removed only after completed checkout", () => {
 test("zero tax default and decimal rounding", () => {
   assert.deepEqual(totals([{ price: 0.1, quantity: 3 }], 0, 0), {
     subtotal: 0.3,
+    productDiscount: 0,
+    billDiscount: 0,
     discount: 0,
     tax: 0,
     total: 0.3,
