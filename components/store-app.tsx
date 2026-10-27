@@ -64,6 +64,8 @@ import BackupPanel from "./backup-panel";
 import LoginForm from "./login-form";
 import { hydrationReadyEvent } from "../lib/extension-hydration.mjs";
 import UserManagement from "./user-management";
+import CashDrawer from "./cash-drawer";
+import { openDrawer } from "../lib/cash-ledger.mjs";
 import ProductImageInput from "./product-image-input";
 import {
   VILLAGES,
@@ -73,7 +75,7 @@ import {
   contactCode,
   matchesBill,
 } from "@/lib/search.mjs";
-import { grossProfit, dailySummary } from "@/lib/reporting.mjs";
+import { grossProfit, dailySummary, localDay } from "@/lib/reporting.mjs";
 import {
   applyAction,
   seedState,
@@ -118,6 +120,7 @@ const categories = [
 const navigation = [
   ["Point of sale", ShoppingBasket],
   ["Dashboard", LayoutDashboard],
+  ["Cash drawer", Wallet],
   ["Products", Package],
   ["Inventory", Box],
   ["Customers", Users],
@@ -778,6 +781,7 @@ export default function StoreApp() {
   const subtitle: Record<string, string> = {
     "Point of sale": "A little less effort. A better day at the counter.",
     Dashboard: "A clear picture of your business, every day.",
+    "Cash drawer": "Opening cash, daily collections and closing cash count.",
     Products: "Everything on your shelves, in one place.",
     Inventory: "Know what comes in, what goes out, and what’s running low.",
     Customers: "Build relationships. Keep every balance clear.",
@@ -1143,9 +1147,14 @@ export default function StoreApp() {
                     {category}
                     <small>{filteredProducts.length} products</small>
                   </span>
-                  <span className="muted">
-                    Click a product to add <Plus size={13} />
-                  </span>
+                  <button
+                    className="text-button"
+                    onClick={() => setPage("Cash drawer")}
+                  >
+                    {openDrawer(state)
+                      ? "Drawer open"
+                      : "Start drawer (optional)"}
+                  </button>
                 </div>
                 <div className="product-grid">
                   {filteredProducts.map((p: any) => (
@@ -1511,6 +1520,9 @@ export default function StoreApp() {
                 </div>
               </aside>
             </div>
+          )}
+          {(page === "Cash drawer" || page === "Dashboard") && (
+            <CashDrawer state={state} busy={busy} onAction={act} />
           )}
           {page === "Dashboard" && (
             <>
@@ -2053,6 +2065,21 @@ export default function StoreApp() {
                               >
                                 View account <ChevronRight size={15} />
                               </button>
+                              {page === "Customers" && (
+                                <button
+                                  className="text-button"
+                                  onClick={() =>
+                                    openForm("customerCredit", {
+                                      customerId: c.id,
+                                      amount: 0,
+                                      source: "drawer",
+                                      note: "",
+                                    })
+                                  }
+                                >
+                                  Lend cash
+                                </button>
+                              )}
                             </td>
                           </tr>
                         );
@@ -2166,7 +2193,7 @@ export default function StoreApp() {
                     )
                   }
                   icon={Wallet}
-                  note="Before subsequent collections"
+                  note="Unpaid bill amounts · excludes cash loans"
                 />
                 <Stat
                   title="Gross profit"
@@ -2460,6 +2487,7 @@ export default function StoreApp() {
                 receipt: "Sale receipt",
                 ledger: "Account details",
                 payment: "Record a payment",
+                customerCredit: "Lend cash to customer",
                 adjust: "Adjust stock",
                 purchase: "Record a purchase",
                 "supplier-sample": "Load supplier sample list",
@@ -3179,6 +3207,21 @@ export default function StoreApp() {
                 </button>
               </div>
               {form.kind === "customer" && (
+                <button
+                  className="button"
+                  onClick={() =>
+                    openForm("customerCredit", {
+                      customerId: form.id,
+                      amount: 0,
+                      source: "drawer",
+                      note: "",
+                    })
+                  }
+                >
+                  Lend cash to customer
+                </button>
+              )}
+              {form.kind === "customer" && (
                 <CustomerBills
                   sales={state.sales}
                   customer={form}
@@ -3227,6 +3270,24 @@ export default function StoreApp() {
                         <td>{s.void ? "—" : fmt(s.paid)}</td>
                       </tr>
                     ))}
+                    {form.kind === "customer" &&
+                      (state.customerCredits || [])
+                        .filter((credit: any) => credit.customerId === form.id)
+                        .map((credit: any) => (
+                          <tr key={credit.id}>
+                            <td>{dateLabel(credit.date)}</td>
+                            <td>
+                              Cash lent · {credit.note}
+                              <small>
+                                {credit.source === "drawer"
+                                  ? "Cash from drawer"
+                                  : "Owner funds outside drawer"}
+                              </small>
+                            </td>
+                            <td>{fmt(credit.amount)}</td>
+                            <td>—</td>
+                          </tr>
+                        ))}
                     {state.payments
                       .filter((p: any) => p[form.kind + "Id"] === form.id)
                       .map((p: any) => (
@@ -3241,6 +3302,65 @@ export default function StoreApp() {
                 </table>
               </div>
             </div>
+          )}
+          {modal === "customerCredit" && (
+            <form onSubmit={submitForm}>
+              <p>
+                Cash lent to{" "}
+                <strong>
+                  {
+                    state.customers.find(
+                      (customer: any) => customer.id === form.customerId,
+                    )?.name
+                  }
+                </strong>{" "}
+                increases their outstanding balance. It creates no sale bill and
+                no sales profit.
+              </p>
+              <Field label="Cash credit amount (LKR)">
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  required
+                  value={form.amount || ""}
+                  onChange={(event) =>
+                    update("amount", Number(event.target.value))
+                  }
+                />
+              </Field>
+              <Field label="Money source">
+                <select
+                  aria-label="Money source"
+                  value={form.source}
+                  onChange={(event) => update("source", event.target.value)}
+                >
+                  <option value="drawer">Cash from drawer</option>
+                  <option value="external">Owner funds outside drawer</option>
+                </select>
+              </Field>
+              {openDrawer(state)?.day !== localDay(new Date()) && (
+                <p className="muted">
+                  No drawer is open for today. The loan will update the customer
+                  balance without a drawer movement.
+                </p>
+              )}
+              <Field label="Cash credit reason">
+                <textarea
+                  required
+                  maxLength={500}
+                  value={form.note}
+                  onChange={(event) => update("note", event.target.value)}
+                />
+              </Field>
+              <p className="muted">
+                The customer’s existing credit limit applies. Edit customer
+                details first if the owner needs to increase it.
+              </p>
+              <button className="primary wide" disabled={busy}>
+                Save cash credit
+              </button>
+            </form>
           )}
           {modal === "payment" && (
             <form onSubmit={submitForm}>
@@ -3262,6 +3382,18 @@ export default function StoreApp() {
                   required
                   onChange={(e) => update("amount", Number(e.target.value))}
                 />
+              </Field>
+              <Field label="Payment method">
+                <select
+                  aria-label="Payment method"
+                  value={form.paymentMethod || "cash"}
+                  onChange={(event) =>
+                    update("paymentMethod", event.target.value)
+                  }
+                >
+                  <option value="cash">Cash</option>
+                  <option value="bank">Bank / card outside drawer</option>
+                </select>
               </Field>
               <Field label="Note / payment reference">
                 <input

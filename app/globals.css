@@ -2914,3 +2914,9 @@ td small {
   padding: 5px;
   font-size: 11px;
 }
+
+.cash-drawer { margin-bottom: 20px; }
+.cash-drawer form { max-width: 560px; padding: 12px 20px; }
+.cash-drawer h3, .cash-drawer > .muted, .cash-drawer > .alert { margin: 14px 20px; }
+.cash-drawer .drawer-form { border-top: 1px solid var(--line); margin-top: 16px; }
+.cash-drawer .drawer-form h3 { margin: 0 0 14px; }

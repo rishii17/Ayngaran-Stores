@@ -586,3 +586,74 @@ test("product and bill discounts round-trip through normalized metadata and SQL 
     await db.close();
   }
 });
+
+test("cash sessions and customer advances survive normalized saves, update SQL balances and remain owner isolated", async () => {
+  const db = await setup();
+  try {
+    await db.exec(migration);
+    const cashMigration = readFileSync(
+      new URL(
+        "../../supabase/migrations/20261027090000_cash_credit_balances.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    await db.exec(cashMigration);
+    await db.exec(cashMigration); // Rerunnable view upgrade.
+    await signIn(db);
+    let current = await load(db);
+    const customer = current.state.customers[0];
+    const before = customerBalance(current.state, customer.id);
+    await commit(db, current, "openDrawer", { amount: 1000 });
+    current = await load(db);
+    const sessionId = current.state.cashSessions[0].id;
+    await commit(db, current, "customerCredit", {
+      customerId: customer.id,
+      amount: 100,
+      source: "drawer",
+      note: "Owner cash loan",
+    });
+    current = await load(db);
+    assert.equal(current.state.customerCredits.length, 1);
+    assert.equal(current.state.sales.length, 0);
+    assert.equal(current.state.cashMovements[0].amount, 100);
+    assert.equal(current.state.cashMovements[0].sessionId, sessionId);
+    assert.equal(customerBalance(current.state, customer.id), before + 100);
+    let sql = await db.query(
+      "select balance from public.ayngaran_customer_balances where id=$1",
+      [customer.id],
+    );
+    assert.equal(Number(sql.rows[0].balance), before + 100);
+    await commit(db, current, "payment", {
+      customerId: customer.id,
+      amount: 40,
+      note: "Loan repayment",
+    });
+    current = await load(db);
+    assert.equal(customerBalance(current.state, customer.id), before + 60);
+    sql = await db.query(
+      "select balance from public.ayngaran_customer_balances where id=$1",
+      [customer.id],
+    );
+    assert.equal(Number(sql.rows[0].balance), before + 60);
+    await commit(db, current, "closeDrawer", { sessionId, amount: 940 });
+    current = await load(db);
+    assert.equal(current.state.cashSessions[0].closingSummary.expected, 940);
+    assert.equal(current.state.cashSessions[0].difference, 0);
+    await signIn(db, other);
+    assert.equal(
+      (
+        await db.query(
+          "select * from public.ayngaran_customer_balances where id=$1",
+          [customer.id],
+        )
+      ).rows.length,
+      0,
+    );
+    const isolated = await load(db);
+    assert.equal((isolated.state.customerCredits || []).length, 0);
+    assert.equal((isolated.state.cashSessions || []).length, 0);
+  } finally {
+    await db.close();
+  }
+});

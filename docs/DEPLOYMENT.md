@@ -1,5 +1,11 @@
 # Manual web deployment
 
+## Cash drawer and customer cash loans release
+
+Before deploying the latest code, apply the complete [`20261027090000_cash_credit_balances.sql`](../supabase/migrations/20261027090000_cash_credit_balances.sql) in your target Supabase SQL Editor. The existing normalized-storage migration must already be applied. This new migration updates only the owner-scoped customer-balance view so SQL reports include cash loans; it preserves all data and can be rerun. Existing owner policies, public/server keys and environment settings remain unchanged. The live database was not accessed or migrated in this task.
+
+Deploy the latest `main` with the normal production build. Then open a drawer with a known cash count; verify a cash sale, cash collection, cash loan, bank exclusion and final closing difference. On Customers, verify Lend cash increases outstanding without adding a bill, and a collection reduces it. Confirm SQL customer balances match the application. Opening the drawer remains optional. Transactions before opening or after closing are not retroactively assigned to a drawer; count earlier cash as part of the opening amount. Closed drawer summaries are retained.
+
 Use the latest `main` branch of `rishii17/Ayngaran-Stores` on a Node.js 22+ host that supports Next.js API routes. Use HTTPS. This application is not a static export: Next.js runs the Express API inside the same service. Do not start a second Express process.
 
 ## Hosting configuration

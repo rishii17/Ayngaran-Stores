@@ -50,7 +50,25 @@ const contact = z.object({
   openingBalance: num.nonnegative().default(0),
   creditLimit: num.nonnegative().optional(),
 });
+const paymentMethod = z.enum(["cash", "bank"]).optional();
 const schemas = {
+  openDrawer: z.object({ amount: num.nonnegative(), note: text.default("") }),
+  closeDrawer: z.object({
+    sessionId: z.string().min(1),
+    amount: num.nonnegative(),
+    note: text.default(""),
+  }),
+  drawerMovement: z.object({
+    amount: num.positive(),
+    direction: z.enum(["in", "out"]),
+    note: text.min(1),
+  }),
+  customerCredit: z.object({
+    customerId: z.string().min(1),
+    amount: num.positive(),
+    source: z.enum(["drawer", "external"]),
+    note: text.min(1),
+  }),
   seed: z.object({ confirm: z.literal("LOAD DUMMY DATA") }),
   price: z.object({
     productId: z.string(),
@@ -74,6 +92,7 @@ const schemas = {
     heldId: z.string().nullable().optional(),
   }),
   payment: z.object({
+    paymentMethod,
     customerId: z.string().optional(),
     supplierId: z.string().optional(),
     amount: num.positive(),
@@ -81,6 +100,7 @@ const schemas = {
   }),
   purchase: z.union([
     z.object({
+      paymentMethod,
       supplierId: z.string().min(1),
       items: z
         .array(
@@ -97,6 +117,7 @@ const schemas = {
       reference: text.default(""),
     }),
     z.object({
+      paymentMethod,
       supplierId: z.string().min(1),
       productId: z.string().min(1),
       quantity: num.positive(),

@@ -24,6 +24,7 @@ export default function PurchaseForm({
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<any[]>([]);
   const [paid, setPaid] = useState("0");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
   const [reference, setReference] = useState("");
   const index = useMemo(
     () =>
@@ -115,6 +116,7 @@ export default function PurchaseForm({
             supplierId,
             reference,
             paid: Number(paid),
+            paymentMethod,
             items: items.map((i) => ({
               productId: i.productId,
               quantity: Number(i.quantity),
@@ -255,6 +257,17 @@ export default function PurchaseForm({
               value={paid}
               onChange={(e) => setPaid(e.target.value)}
             />
+          </label>
+          <label className="field">
+            Payment method
+            <select
+              aria-label="Purchase payment method"
+              value={paymentMethod}
+              onChange={(event) => setPaymentMethod(event.target.value)}
+            >
+              <option value="cash">Cash from drawer</option>
+              <option value="bank">Bank / card outside drawer</option>
+            </select>
           </label>
           <label className="field">
             Supplier invoice / reference
