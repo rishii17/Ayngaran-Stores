@@ -2920,3 +2920,8 @@ td small {
 .cash-drawer h3, .cash-drawer > .muted, .cash-drawer > .alert { margin: 14px 20px; }
 .cash-drawer .drawer-form { border-top: 1px solid var(--line); margin-top: 16px; }
 .cash-drawer .drawer-form h3 { margin: 0 0 14px; }
+
+.supplier-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+.supplier-summary { display: flex; flex-wrap: wrap; gap: 24px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.supplier-summary small, .supplier-summary strong { display: block; }
+.supplier-summary small { color: var(--muted); margin-bottom: 5px; }

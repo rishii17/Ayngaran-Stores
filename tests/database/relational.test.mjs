@@ -657,3 +657,43 @@ test("cash sessions and customer advances survive normalized saves, update SQL b
     await db.close();
   }
 });
+
+test("supplier payment and visit reminders persist in metadata without changing outstanding balances", async () => {
+  const initial = seedState();
+  initial.suppliers[0].openingBalance = 500;
+  const db = await setup(initial);
+  try {
+    await db.exec(migration);
+    await signIn(db);
+    let current = await load(db);
+    const supplier = current.state.suppliers[0];
+    await commit(db, current, "supplierSchedule", {
+      supplierId: supplier.id,
+      paymentDueDate: "2026-11-01",
+      nextChequeDate: "2026-11-02",
+      chequeAmount: 200,
+      chequeReference: "CHEQUE-TEST",
+      lastVisitDate: "2026-10-01",
+      nextVisitDate: "2026-11-03",
+    });
+    current = await load(db);
+    assert.equal(current.state.suppliers[0].nextChequeDate, "2026-11-02");
+    assert.equal(current.state.suppliers[0].chequeAmount, 200);
+    assert.equal(current.state.payments.length, 0);
+    assert.equal(supplierBalance(current.state, supplier.id), 500);
+    await commit(db, current, "supplier", {
+      ...supplier,
+      name: "Renamed company",
+    });
+    current = await load(db);
+    assert.equal(current.state.suppliers[0].chequeReference, "CHEQUE-TEST");
+    assert.equal(current.state.suppliers[0].lastVisitDate, "2026-10-01");
+    const sql = await db.query(
+      "select balance from public.ayngaran_supplier_balances where id=$1",
+      [supplier.id],
+    );
+    assert.equal(Number(sql.rows[0].balance), 500);
+  } finally {
+    await db.close();
+  }
+});

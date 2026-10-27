@@ -1,5 +1,9 @@
 # Manual web deployment
 
+## Supplier payment priorities release
+
+Deploy the latest `main` with the existing environment settings. Supplier due dates, cheque reminders and visit dates use existing supplier metadata; this update needs no new database migration. The earlier cash-loan balance-view migration below still applies if it has not already been run. Verify the payable list and priority sorting, save a supplier’s Plan dates, record a payment and confirm its last-payment date, then open/close Compare buying costs. Cheque reminders do not settle balances; record the actual bank payment once cleared and remove the reminder.
+
 ## Cash drawer and customer cash loans release
 
 Before deploying the latest code, apply the complete [`20261027090000_cash_credit_balances.sql`](../supabase/migrations/20261027090000_cash_credit_balances.sql) in your target Supabase SQL Editor. The existing normalized-storage migration must already be applied. This new migration updates only the owner-scoped customer-balance view so SQL reports include cash loans; it preserves all data and can be rerun. Existing owner policies, public/server keys and environment settings remain unchanged. The live database was not accessed or migrated in this task.

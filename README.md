@@ -169,7 +169,7 @@ Use the [relational architecture and migration guide](docs/DATABASE-ARCHITECTURE
 
 ### Compare supplier buying costs
 
-On **Suppliers → Compare buying costs**, search a product name, brand saved in its name, SKU, barcode, or supplier company. For example, save products as “Alpha Chilli Powder 100g” and “Beta Chilli Powder 100g”; searching “chilli” shows both. Each supplier has a separate row showing their latest recorded buying cost. Expand **Previous purchases** to see older costs and invoice numbers. Products without purchases show their current catalogue cost, clearly labelled.
+On **Suppliers**, click **Compare buying costs** to open the comparison dialog, then search a product name, brand saved in its name, SKU, barcode, or supplier company. For example, save products as “Alpha Chilli Powder 100g” and “Beta Chilli Powder 100g”; searching “chilli” shows both. Each supplier has a separate row showing their latest recorded buying cost. Expand **Previous purchases** to see older costs and invoice numbers. Products without purchases show their current catalogue cost, clearly labelled.
 
 Sort by buying cost or potential margin to plan restocking. Margin is `(current selling price − buying cost) / current selling price × 100`; compare the same pack sizes and units, and allow for tax, discounts, other expenses and updated supplier quotes. This comparison does not change inventory or prices.
 
@@ -226,3 +226,11 @@ At the end of the day, enter **Counted cash**, explain any difference, and choos
 On **Customers**, choose **Lend cash** or use **View account → Lend cash to customer**. Enter the amount, money source and reason. This increases outstanding credit, respects the customer’s credit limit and appears as a separate debit in the account ledger. It creates no sale bill, stock movement, tax or sales profit. Choose **Owner funds outside drawer** if the money is not taken from the store drawer. Record repayments with the existing **Record collection** action. Excel backups include customer cash credits, drawer sessions and cash movements.
 
 Before deploying this release, run [`supabase/migrations/20261027090000_cash_credit_balances.sql`](supabase/migrations/20261027090000_cash_credit_balances.sql) after the existing normalized-storage migration. This rerunnable, non-destructive view update makes SQL customer balances include cash loans. See [Deployment](docs/DEPLOYMENT.md). It has not been applied to your live database here.
+
+### Supplier payment priorities
+
+Suppliers opens with outstanding payables and reminder priorities. **Compare buying costs** is a single button; the comparison occupies space only while its dialog is open. Purchase recording and history remain available.
+
+Choose **Plan dates** beside a supplier to set the payment due date, next cheque date/amount/reference, last supplier visit and next visit. These are reminders, not payments. Dates and cheque details do not reduce outstanding balances or move drawer cash. Record a bank payment once a cheque clears, then clear its reminder date, amount and reference. Last payment is derived from actual supplier payments and paid purchase invoices, shown in Sri Lanka time.
+
+Default priority is overdue scheduled items, today, upcoming dates, then outstanding balances without dates and settled suppliers. Among matching priorities, the nearest date and largest payable come first. Payment/cheque urgency applies only where money is outstanding; scheduled visits can still appear for a settled supplier. Use **Sort suppliers** for highest payable, nearest cheque, next visit, oldest last payment or name, and search to narrow the list. **Pay supplier** opens the existing payment form. Reminder fields persist in existing supplier metadata and Excel backups; this update requires no new migration or environment settings. The earlier cash-loan balance-view migration remains required if it has not already been applied.

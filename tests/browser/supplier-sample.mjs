@@ -26,6 +26,9 @@ try {
     .getByRole("button", { name: "Add supplier sample products", exact: true })
     .click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
+  await page
+    .getByRole("button", { name: "Compare buying costs", exact: true })
+    .click();
   const panel = page.getByRole("region", { name: "Compare buying costs" });
   const search = panel.getByRole("textbox", {
     name: "Search products or companies",

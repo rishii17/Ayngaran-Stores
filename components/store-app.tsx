@@ -65,6 +65,7 @@ import LoginForm from "./login-form";
 import { hydrationReadyEvent } from "../lib/extension-hydration.mjs";
 import UserManagement from "./user-management";
 import CashDrawer from "./cash-drawer";
+import SupplierOverview from "./supplier-overview";
 import { openDrawer } from "../lib/cash-ledger.mjs";
 import ProductImageInput from "./product-image-input";
 import {
@@ -1916,178 +1917,146 @@ export default function StoreApp() {
           {(page === "Customers" || page === "Suppliers") && (
             <>
               {page === "Suppliers" && (
-                <div className="purchase-banner">
-                  <div>
-                    <Truck size={27} />
-                    <span>
-                      <strong>Keep your shelves ready for tomorrow.</strong>
-                      <small>
-                        Record a purchase to update stock and supplier balances
-                        together.
-                      </small>
+                <SupplierOverview state={state} onForm={openForm} />
+              )}
+              {page === "Customers" && (
+                <section className="panel">
+                  <div className="table-toolbar">
+                    <div className="search-box">
+                      <Search size={18} />
+                      <input
+                        placeholder={
+                          "Search " +
+                          page.toLowerCase() +
+                          " by name, phone, ID or village"
+                        }
+                        value={tableQuery}
+                        onChange={(e) => setTableQuery(e.target.value)}
+                      />
+                    </div>
+                    {page === "Customers" && (
+                      <label className="customer-sort">
+                        Sort customers
+                        <select
+                          value={customerSort}
+                          onChange={(e) => setCustomerSort(e.target.value)}
+                        >
+                          <option value="name-asc">Name A–Z</option>
+                          <option value="name-desc">Name Z–A</option>
+                          <option value="village">Village A–Z</option>
+                          <option value="balance-desc">
+                            Outstanding: highest first
+                          </option>
+                          <option value="balance-asc">
+                            Outstanding: lowest first
+                          </option>
+                          <option value="credit-desc">
+                            Credit limit: highest first
+                          </option>
+                        </select>
+                      </label>
+                    )}
+                    <span className="muted">
+                      {
+                        state[page === "Customers" ? "customers" : "suppliers"]
+                          .length
+                      }{" "}
+                      {page.toLowerCase()}
                     </span>
                   </div>
-                  <button
-                    className="primary"
-                    onClick={() =>
-                      openForm("purchase", {
-                        supplierId: "",
-                        productId: "",
-                        quantity: 1,
-                        cost: 0,
-                        paid: 0,
-                        reference: "",
-                      })
-                    }
-                  >
-                    <Plus size={17} />
-                    Record purchase
-                  </button>
-                </div>
-              )}
-              {page === "Suppliers" && (
-                <PurchaseComparison
-                  products={state.products}
-                  suppliers={state.suppliers}
-                  purchases={state.purchases}
-                />
-              )}
-              <section className="panel">
-                <div className="table-toolbar">
-                  <div className="search-box">
-                    <Search size={18} />
-                    <input
-                      placeholder={
-                        "Search " +
-                        page.toLowerCase() +
-                        " by name, phone, ID or village"
-                      }
-                      value={tableQuery}
-                      onChange={(e) => setTableQuery(e.target.value)}
-                    />
-                  </div>
-                  {page === "Customers" && (
-                    <label className="customer-sort">
-                      Sort customers
-                      <select
-                        value={customerSort}
-                        onChange={(e) => setCustomerSort(e.target.value)}
-                      >
-                        <option value="name-asc">Name A–Z</option>
-                        <option value="name-desc">Name Z–A</option>
-                        <option value="village">Village A–Z</option>
-                        <option value="balance-desc">
-                          Outstanding: highest first
-                        </option>
-                        <option value="balance-asc">
-                          Outstanding: lowest first
-                        </option>
-                        <option value="credit-desc">
-                          Credit limit: highest first
-                        </option>
-                      </select>
-                    </label>
-                  )}
-                  <span className="muted">
-                    {
-                      state[page === "Customers" ? "customers" : "suppliers"]
-                        .length
-                    }{" "}
-                    {page.toLowerCase()}
-                  </span>
-                </div>
-                <div className="table-scroll">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>
-                          {page === "Customers" ? "Customer" : "Supplier"}
-                        </th>
-                        <th>Phone</th>
-                        <th>Address</th>
-                        <th>Outstanding balance</th>
-                        {page === "Customers" && <th>Credit limit</th>}
-                        <th />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tableContacts.map((c: any) => {
-                        const balance =
-                          page === "Customers"
-                            ? customerBalance(state, c.id)
-                            : supplierBalance(state, c.id);
-                        return (
-                          <tr key={c.id}>
-                            <td>
-                              <div className="person-cell">
-                                <span className="person-avatar">
-                                  {c.name
-                                    .split(" ")
-                                    .map((s: string) => s[0])
-                                    .slice(0, 2)
-                                    .join("")}
-                                </span>
-                                <div>
-                                  <strong>{c.name}</strong>
-                                  <small>
-                                    {contactCode(c)} ·{" "}
-                                    {c.village || "No village"}
-                                  </small>
+                  <div className="table-scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>
+                            {page === "Customers" ? "Customer" : "Supplier"}
+                          </th>
+                          <th>Phone</th>
+                          <th>Address</th>
+                          <th>Outstanding balance</th>
+                          {page === "Customers" && <th>Credit limit</th>}
+                          <th />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tableContacts.map((c: any) => {
+                          const balance =
+                            page === "Customers"
+                              ? customerBalance(state, c.id)
+                              : supplierBalance(state, c.id);
+                          return (
+                            <tr key={c.id}>
+                              <td>
+                                <div className="person-cell">
+                                  <span className="person-avatar">
+                                    {c.name
+                                      .split(" ")
+                                      .map((s: string) => s[0])
+                                      .slice(0, 2)
+                                      .join("")}
+                                  </span>
+                                  <div>
+                                    <strong>{c.name}</strong>
+                                    <small>
+                                      {contactCode(c)} ·{" "}
+                                      {c.village || "No village"}
+                                    </small>
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td>{c.phone || "—"}</td>
-                            <td>{c.address || "—"}</td>
-                            <td>
-                              <strong
-                                className={
-                                  balance > 0 ? "negative" : "positive"
-                                }
-                              >
-                                Rs. {fmt(balance)}
-                              </strong>
-                            </td>
-                            {page === "Customers" && (
-                              <td>Rs. {fmt(c.creditLimit)}</td>
-                            )}
-                            <td>
-                              <button
-                                className="text-button"
-                                onClick={() =>
-                                  openForm("ledger", {
-                                    ...c,
-                                    kind:
-                                      page === "Customers"
-                                        ? "customer"
-                                        : "supplier",
-                                  })
-                                }
-                              >
-                                View account <ChevronRight size={15} />
-                              </button>
+                              </td>
+                              <td>{c.phone || "—"}</td>
+                              <td>{c.address || "—"}</td>
+                              <td>
+                                <strong
+                                  className={
+                                    balance > 0 ? "negative" : "positive"
+                                  }
+                                >
+                                  Rs. {fmt(balance)}
+                                </strong>
+                              </td>
                               {page === "Customers" && (
+                                <td>Rs. {fmt(c.creditLimit)}</td>
+                              )}
+                              <td>
                                 <button
                                   className="text-button"
                                   onClick={() =>
-                                    openForm("customerCredit", {
-                                      customerId: c.id,
-                                      amount: 0,
-                                      source: "drawer",
-                                      note: "",
+                                    openForm("ledger", {
+                                      ...c,
+                                      kind:
+                                        page === "Customers"
+                                          ? "customer"
+                                          : "supplier",
                                     })
                                   }
                                 >
-                                  Lend cash
+                                  View account <ChevronRight size={15} />
                                 </button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
+                                {page === "Customers" && (
+                                  <button
+                                    className="text-button"
+                                    onClick={() =>
+                                      openForm("customerCredit", {
+                                        customerId: c.id,
+                                        amount: 0,
+                                        source: "drawer",
+                                        note: "",
+                                      })
+                                    }
+                                  >
+                                    Lend cash
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
               {page === "Suppliers" && (
                 <section className="panel">
                   <div className="panel-heading">
@@ -2478,6 +2447,8 @@ export default function StoreApp() {
                 deleteProduct: "Delete product?",
                 customer: form.id ? "Edit customer" : "Add a customer",
                 supplier: form.id ? "Edit supplier" : "Add a supplier",
+                supplierSchedule: "Supplier payment and visit dates",
+                comparison: "Compare buying costs",
                 scanner: "Scan barcode or QR",
                 productScanner: "Scan product barcode",
                 checkout: "Complete your sale",
@@ -2499,7 +2470,10 @@ export default function StoreApp() {
           }
           close={close}
           wide={
-            modal === "product" || modal === "ledger" || modal === "purchase"
+            modal === "product" ||
+            modal === "ledger" ||
+            modal === "purchase" ||
+            modal === "comparison"
           }
         >
           {error && (
@@ -3359,6 +3333,73 @@ export default function StoreApp() {
               </p>
               <button className="primary wide" disabled={busy}>
                 Save cash credit
+              </button>
+            </form>
+          )}
+          {modal === "comparison" && (
+            <PurchaseComparison
+              products={state.products}
+              suppliers={state.suppliers}
+              purchases={state.purchases}
+            />
+          )}
+          {modal === "supplierSchedule" && (
+            <form onSubmit={submitForm}>
+              <p>
+                Schedule for{" "}
+                <strong>
+                  {
+                    state.suppliers.find(
+                      (supplier: any) => supplier.id === form.supplierId,
+                    )?.name
+                  }
+                </strong>
+                . These reminders do not change outstanding balances or record a
+                payment.
+              </p>
+              {[
+                ["paymentDueDate", "Payment due date"],
+                ["nextChequeDate", "Next cheque date"],
+                ["lastVisitDate", "Last supplier visit"],
+                ["nextVisitDate", "Next supplier visit"],
+              ].map(([key, label]) => (
+                <Field key={key} label={label}>
+                  <input
+                    type="date"
+                    value={form[key] || ""}
+                    max={key === "lastVisitDate" ? today : undefined}
+                    onChange={(event) => update(key, event.target.value)}
+                  />
+                </Field>
+              ))}
+              <Field label="Cheque reminder amount (LKR)">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.chequeAmount || ""}
+                  placeholder="0"
+                  onChange={(event) =>
+                    update("chequeAmount", Number(event.target.value))
+                  }
+                />
+              </Field>
+              <Field label="Cheque reference">
+                <input
+                  maxLength={500}
+                  value={form.chequeReference || ""}
+                  onChange={(event) =>
+                    update("chequeReference", event.target.value)
+                  }
+                />
+              </Field>
+              <p className="muted">
+                For a cleared cheque, record a Bank / card payment and clear its
+                reminder here. To remove a cheque reminder, clear its date,
+                amount and reference.
+              </p>
+              <button className="primary wide" disabled={busy}>
+                Save supplier dates
               </button>
             </form>
           )}

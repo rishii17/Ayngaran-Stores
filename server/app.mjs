@@ -83,6 +83,15 @@ const schemas = {
   }),
   customer: contact.extend({ creditLimit: num.nonnegative() }),
   supplier: contact,
+  supplierSchedule: z.object({
+    supplierId: z.string().min(1),
+    paymentDueDate: z.string().max(10).optional(),
+    nextChequeDate: z.string().max(10).optional(),
+    lastVisitDate: z.string().max(10).optional(),
+    nextVisitDate: z.string().max(10).optional(),
+    chequeAmount: num.nonnegative().optional(),
+    chequeReference: text.optional(),
+  }),
   checkout: z.object({
     items: z.array(saleLine).min(1).max(500),
     customerId: z.string().nullable().optional(),
