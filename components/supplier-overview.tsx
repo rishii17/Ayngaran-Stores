@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { supplierPriorities } from "../lib/supplier-priority.mjs";
+import {
+  supplierPriorities,
+  supplierPaymentReminders,
+} from "../lib/supplier-priority.mjs";
 import { cashDay } from "../lib/cash-ledger.mjs";
 import {
   searchIndex,
@@ -44,6 +47,12 @@ export default function SupplierOverview({
     () => supplierPriorities(state.suppliers, state, today, sort),
     [state, today, sort],
   );
+  const reminders: (SupplierRow & {
+    dueDate: string;
+    kind: string;
+    plannedAmount: number | null;
+    status: string;
+  })[] = useMemo(() => supplierPaymentReminders(rows, today), [rows, today]);
   const matches = useMemo(
     () =>
       new Set(
@@ -60,9 +69,13 @@ export default function SupplierOverview({
   const overdue = rows.filter(
     (row) =>
       row.balance > 0 &&
-      [row.supplier.paymentDueDate, row.supplier.nextChequeDate].some(
-        (day) => day && day < today,
-      ),
+      [
+        row.supplier.paymentDueDate,
+        row.supplier.nextChequeDate,
+        ...(row.supplier.payOnNextVisit && !row.supplier.nextChequeDate
+          ? [row.supplier.nextVisitDate]
+          : []),
+      ].some((day) => day && day < today),
   );
   return (
     <>
@@ -74,6 +87,86 @@ export default function SupplierOverview({
           Compare buying costs
         </button>
       </div>
+      <section
+        className="panel supplier-upcoming"
+        aria-label="Upcoming supplier payments"
+      >
+        <div className="panel-heading">
+          <div>
+            <h2>Upcoming supplier payments</h2>
+            <p>
+              All outstanding cheque reminders and payments planned for the next
+              visit. Overdue items stay visible.
+            </p>
+          </div>
+        </div>
+        <div className="table-scroll supplier-upcoming-list">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Payment plan</th>
+                <th>Supplier</th>
+                <th>Planned amount</th>
+                <th>Outstanding payable</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reminders.map((item) => (
+                <tr key={item.supplier.id}>
+                  <td>
+                    {date(item.dueDate)}
+                    <small>{item.status}</small>
+                  </td>
+                  <td>
+                    {item.kind}
+                    {item.kind === "Cheque" && (
+                      <small>
+                        {item.supplier.chequeReference || "No reference"}
+                      </small>
+                    )}
+                  </td>
+                  <td>{item.supplier.name}</td>
+                  <td>
+                    {item.plannedAmount == null
+                      ? "Not set"
+                      : "Rs. " + fmt(item.plannedAmount)}
+                  </td>
+                  <td>Rs. {fmt(item.balance)}</td>
+                  <td>
+                    <button
+                      className="text-button"
+                      onClick={() =>
+                        onForm("payment", {
+                          supplierId: item.supplier.id,
+                          amount: 0,
+                          note: "",
+                          paymentMethod:
+                            item.kind === "Cheque" ? "bank" : "cash",
+                        })
+                      }
+                    >
+                      Record payment
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!reminders.length && (
+          <p className="comparison-note muted">
+            No dated payments planned. Use Plan dates to add a cheque reminder
+            or mark payment due at the next visit.
+          </p>
+        )}
+        <p className="comparison-note muted">
+          A cheque is the main reminder when one is scheduled. Otherwise,
+          payment at the next visit uses the remaining outstanding balance. This
+          overview always shows all suppliers, independent of the search below.
+        </p>
+      </section>
       <section className="panel" aria-label="Supplier payment priorities">
         <div className="supplier-summary">
           <div>
@@ -185,6 +278,9 @@ export default function SupplierOverview({
                       <td>
                         Last: {date(c.lastVisitDate)}
                         <small>Next: {date(c.nextVisitDate)}</small>
+                        {c.payOnNextVisit && !c.nextChequeDate && (
+                          <small>Payment due at visit</small>
+                        )}
                       </td>
                       <td>{date(row.lastPayment)}</td>
                       <td>
@@ -199,6 +295,7 @@ export default function SupplierOverview({
                               chequeReference: c.chequeReference || "",
                               lastVisitDate: c.lastVisitDate || "",
                               nextVisitDate: c.nextVisitDate || "",
+                              payOnNextVisit: c.payOnNextVisit || false,
                             })
                           }
                         >

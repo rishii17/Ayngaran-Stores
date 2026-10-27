@@ -2925,3 +2925,8 @@ td small {
 .supplier-summary { display: flex; flex-wrap: wrap; gap: 24px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
 .supplier-summary small, .supplier-summary strong { display: block; }
 .supplier-summary small { color: var(--muted); margin-bottom: 5px; }
+
+.supplier-upcoming { margin-bottom: 18px; }
+.supplier-upcoming-list { max-height: 300px; overflow: auto; }
+.supplier-visit-payment { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+.supplier-visit-payment input { width: auto; }

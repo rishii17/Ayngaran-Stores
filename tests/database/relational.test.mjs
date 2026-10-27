@@ -675,6 +675,7 @@ test("supplier payment and visit reminders persist in metadata without changing 
       chequeReference: "CHEQUE-TEST",
       lastVisitDate: "2026-10-01",
       nextVisitDate: "2026-11-03",
+      payOnNextVisit: true,
     });
     current = await load(db);
     assert.equal(current.state.suppliers[0].nextChequeDate, "2026-11-02");
@@ -688,6 +689,7 @@ test("supplier payment and visit reminders persist in metadata without changing 
     current = await load(db);
     assert.equal(current.state.suppliers[0].chequeReference, "CHEQUE-TEST");
     assert.equal(current.state.suppliers[0].lastVisitDate, "2026-10-01");
+    assert.equal(current.state.suppliers[0].payOnNextVisit, true);
     const sql = await db.query(
       "select balance from public.ayngaran_supplier_balances where id=$1",
       [supplier.id],

@@ -66,6 +66,11 @@ try {
     "Large Balance Supply",
     "Settled Supply",
   ]);
+  const upcoming = page.getByRole("region", {
+    name: "Upcoming supplier payments",
+    exact: true,
+  });
+  await upcoming.getByText("CH-101", { exact: true }).waitFor();
   assert.equal(
     await page.getByRole("region", { name: "Compare buying costs" }).count(),
     0,
@@ -81,6 +86,12 @@ try {
   await page.getByLabel("Payment due date", { exact: true }).fill(offset(1));
   await page.getByLabel("Next supplier visit", { exact: true }).fill(offset(3));
   await page
+    .getByLabel(
+      "Payment due at next supplier visit (when no cheque is scheduled)",
+      { exact: true },
+    )
+    .check();
+  await page
     .getByRole("button", { name: "Save supplier dates", exact: true })
     .click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
@@ -89,9 +100,12 @@ try {
   await panel
     .getByRole("combobox", { name: "Sort suppliers", exact: true })
     .selectOption("priority");
+  await upcoming.getByText("Next visit payment", { exact: true }).waitFor();
   const overdue = panel.getByRole("row").filter({ hasText: "Overdue Supply" });
-  await overdue
-    .getByRole("button", { name: "Pay supplier", exact: true })
+  await upcoming
+    .getByRole("row")
+    .filter({ hasText: "Overdue Supply" })
+    .getByRole("button", { name: "Record payment", exact: true })
     .click();
   await page.getByLabel("Amount (LKR) *", { exact: true }).fill("100");
   await page.getByLabel("Payment method", { exact: true }).selectOption("bank");
@@ -139,6 +153,7 @@ try {
   );
   assert.equal(saved.payments.length, 1);
   assert.equal(saved.suppliers[1].paymentDueDate, offset(1));
+  assert.equal(saved.suppliers[1].payOnNextVisit, true);
   assert.deepEqual(errors, []);
   console.log(
     "PASS: payable-first supplier page, priority/balance sorting, planning without payment, payment date update, edit preservation, compare-button modal, mobile and reload.",

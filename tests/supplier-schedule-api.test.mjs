@@ -74,10 +74,12 @@ test("supplier scheduling API validates dates and preserves reminders when conta
       chequeReference: "CH-01",
       lastVisitDate: "2026-01-01",
       nextVisitDate: "2026-11-03",
+      payOnNextVisit: true,
     };
     let response = await action("supplierSchedule", plan);
     assert.equal(response.status, 200, await response.text());
     assert.equal(state.suppliers[0].chequeReference, "CH-01");
+    assert.equal(state.suppliers[0].payOnNextVisit, true);
     assert.equal(supplierBalance(state, supplier.id), before);
     assert.equal(state.payments.length, 0);
     response = await action("supplier", {
@@ -90,6 +92,8 @@ test("supplier scheduling API validates dates and preserves reminders when conta
     for (const extra of [
       { paymentDueDate: "2026-02-30" },
       { chequeAmount: -1 },
+      { payOnNextVisit: "yes" },
+      { nextVisitDate: "", payOnNextVisit: true },
       { lastVisitDate: "2099-01-01" },
       { supplierId: "other-owner-supplier" },
     ]) {

@@ -2,7 +2,7 @@
 
 ## Supplier payment priorities release
 
-Deploy the latest `main` with the existing environment settings. Supplier due dates, cheque reminders and visit dates use existing supplier metadata; this update needs no new database migration. The earlier cash-loan balance-view migration below still applies if it has not already been run. Verify the payable list and priority sorting, save a supplier’s Plan dates, record a payment and confirm its last-payment date, then open/close Compare buying costs. Cheque reminders do not settle balances; record the actual bank payment once cleared and remove the reminder.
+Deploy the latest `main` with the existing environment settings. Supplier due dates, cheque reminders and visit dates use existing supplier metadata; this update needs no new database migration. The earlier cash-loan balance-view migration below still applies if it has not already been run. Verify the top Upcoming supplier payments overview and priority sorting, save a supplier’s Plan dates, select payment at the next visit when no cheque is scheduled, record a payment and confirm its last-payment date, then open/close Compare buying costs. Cheque reminders do not settle balances; record the actual bank payment once cleared and remove the reminder.
 
 ## Cash drawer and customer cash loans release
 

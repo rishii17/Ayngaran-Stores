@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { seedState, applyAction, supplierBalance } from "../lib/domain.mjs";
-import { supplierPriorities } from "../lib/supplier-priority.mjs";
+import {
+  supplierPriorities,
+  supplierPaymentReminders,
+} from "../lib/supplier-priority.mjs";
 import { validCalendarDate } from "../lib/calendar-date.mjs";
 const supplier = (id, amount, extra = {}) => ({
   id,
@@ -168,4 +171,79 @@ test("Excel supplier export includes payment, cheque and visit reminders", async
     sheet.getRow(2).getCell(headers.indexOf("Next visit")).value,
     "2026-11-03",
   );
+});
+
+test("upcoming payments include every dated payable, prefer cheques and fall back to a selected visit", () => {
+  const state = seedState();
+  state.suppliers = [
+    supplier("Cheque", 500, {
+      nextChequeDate: "2026-10-29",
+      chequeAmount: 200,
+      chequeReference: "CH",
+      payOnNextVisit: true,
+      nextVisitDate: "2026-10-30",
+    }),
+    supplier("Visit", 700, {
+      payOnNextVisit: true,
+      nextVisitDate: "2026-11-01",
+    }),
+    supplier("Due", 100, { paymentDueDate: "2026-10-27" }),
+    supplier("Settled", 0, { nextChequeDate: "2026-10-29" }),
+    supplier("Visit only", 100, { nextVisitDate: "2026-10-29" }),
+  ];
+  const rows = supplierPriorities(state.suppliers, state, "2026-10-28");
+  const before = structuredClone(rows);
+  const reminders = supplierPaymentReminders(rows, "2026-10-28");
+  assert.deepEqual(
+    reminders.map((row) => row.kind),
+    ["Payment due", "Cheque", "Next visit payment"],
+  );
+  assert.equal(reminders[0].status, "Overdue");
+  assert.equal(reminders[1].plannedAmount, 200);
+  assert.equal(reminders[2].plannedAmount, 700);
+  assert.deepEqual(rows, before);
+  state.suppliers[0].nextChequeDate = "";
+  const fallback = supplierPaymentReminders(
+    supplierPriorities(state.suppliers, state, "2026-10-28"),
+    "2026-10-28",
+  ).find((row) => row.supplier.id === "Cheque");
+  assert.equal(fallback.kind, "Next visit payment");
+  assert.equal(fallback.plannedAmount, 500);
+  state.payments.push({
+    supplierId: "Cheque",
+    amount: 100,
+    date: "2026-10-28T00:00:00Z",
+  });
+  assert.equal(
+    supplierPaymentReminders(
+      supplierPriorities(state.suppliers, state, "2026-10-28"),
+      "2026-10-28",
+    ).find((row) => row.supplier.id === "Cheque").plannedAmount,
+    400,
+  );
+});
+test("pay-at-visit requires an explicit selection and date without creating a payment", () => {
+  const state = seedState();
+  const id = state.suppliers[0].id;
+  for (const payload of [
+    { payOnNextVisit: true },
+    { payOnNextVisit: "yes", nextVisitDate: "2026-11-01" },
+  ])
+    assert.throws(() =>
+      applyAction(state, {
+        type: "supplierSchedule",
+        payload: { supplierId: id, ...payload },
+      }),
+    );
+  const saved = applyAction(state, {
+    type: "supplierSchedule",
+    payload: {
+      supplierId: id,
+      payOnNextVisit: true,
+      nextVisitDate: "2026-11-01",
+    },
+  }).state;
+  assert.equal(saved.suppliers[0].payOnNextVisit, true);
+  assert.deepEqual(saved.payments, state.payments);
+  assert.equal(supplierBalance(saved, id), supplierBalance(state, id));
 });

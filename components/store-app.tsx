@@ -3366,12 +3366,28 @@ export default function StoreApp() {
                 <Field key={key} label={label}>
                   <input
                     type="date"
+                    required={key === "nextVisitDate" && !!form.payOnNextVisit}
                     value={form[key] || ""}
                     max={key === "lastVisitDate" ? today : undefined}
                     onChange={(event) => update(key, event.target.value)}
                   />
                 </Field>
               ))}
+              <label className="supplier-visit-payment">
+                <input
+                  type="checkbox"
+                  checked={!!form.payOnNextVisit}
+                  onChange={(event) =>
+                    update("payOnNextVisit", event.target.checked)
+                  }
+                />{" "}
+                Payment due at next supplier visit (when no cheque is scheduled)
+              </label>
+              <p className="muted">
+                When selected, the next visit becomes a payment reminder for the
+                remaining outstanding balance. A scheduled cheque takes
+                priority.
+              </p>
               <Field label="Cheque reminder amount (LKR)">
                 <input
                   type="number"

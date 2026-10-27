@@ -89,6 +89,7 @@ const schemas = {
     nextChequeDate: z.string().max(10).optional(),
     lastVisitDate: z.string().max(10).optional(),
     nextVisitDate: z.string().max(10).optional(),
+    payOnNextVisit: z.boolean().optional(),
     chequeAmount: num.nonnegative().optional(),
     chequeReference: text.optional(),
   }),
