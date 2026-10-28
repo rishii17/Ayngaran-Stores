@@ -270,6 +270,7 @@ export default function StoreApp() {
   const [imageBusy, setImageBusy] = useState(false);
   const [customerSort, setCustomerSort] = useState("name-asc");
   const [mobileBill, setMobileBill] = useState(false);
+  const [showPurchaseCosts, setShowPurchaseCosts] = useState(false);
   const [quantityFocus, setQuantityFocus] = useState({ id: "", sequence: 0 });
   const [searchFocus, setSearchFocus] = useState(0);
   const navigationRef = useRef<HTMLElement>(null);
@@ -527,6 +528,10 @@ export default function StoreApp() {
     return { ...line, ...linePricing(line) };
   });
   const total = totals(lines, discount, state.settings.taxRate);
+  useEffect(() => {
+    if (page !== "Point of sale" || cart.length === 0)
+      setShowPurchaseCosts(false);
+  }, [page, cart.length]);
   useEffect(() => {
     setDiscount((current) =>
       Math.min(current, money(total.subtotal - total.productDiscount)),
@@ -1279,6 +1284,17 @@ export default function StoreApp() {
                   <span>
                     ITEM <small>({cart.length})</small>
                   </span>
+                  <button
+                    type="button"
+                    className="bill-cost-toggle"
+                    aria-pressed={showPurchaseCosts}
+                    disabled={!cart.length}
+                    onClick={() => setShowPurchaseCosts((visible) => !visible)}
+                  >
+                    {showPurchaseCosts
+                      ? "Hide purchase costs"
+                      : "Show purchase costs"}
+                  </button>
                   <span>AMOUNT</span>
                 </div>
                 <div className="bill-items">
@@ -1315,6 +1331,24 @@ export default function StoreApp() {
                             <span>Save Rs. {fmt(l.discountAmount)}</span>
                           )}
                         </div>
+                        {showPurchaseCosts && (
+                          <div
+                            className="bill-purchase-cost"
+                            aria-label={"Purchase cost of " + l.name}
+                          >
+                            {Number.isFinite(l.cost) ? (
+                              <>
+                                Purchase cost: Rs. {fmt(l.cost)} / {l.unit}
+                                <span>
+                                  Line cost: Rs.{" "}
+                                  {fmt(money(l.cost * l.quantity))}
+                                </span>
+                              </>
+                            ) : (
+                              "Purchase cost not recorded"
+                            )}
+                          </div>
+                        )}
                         <div className="line-discount-controls">
                           <select
                             aria-label={"Discount type for " + l.name}

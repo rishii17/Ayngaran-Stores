@@ -1,3 +1,11 @@
+# Optional purchase-cost display in billing — 28 October 2026
+
+Current bill has Show purchase costs / Hide purchase costs. Costs are hidden by default and are rendered only after explicit selection. Each line shows the current saved product cost per unit and its quantity-based total; quantity changes update the line cost. This is a display option and changes no sale prices, discounts, totals, inventory or accounting records. Missing cost data is labelled as not recorded.
+
+The choice is not persisted. Leaving POS or emptying the bill (including checkout, hold and clear) resets visibility. Customer receipt and print components contain no purchase-cost display; print media hides the billing workspace even when costs have been revealed. No migration, environment variable or permission change is needed.
+
+Validation passed: 72 application/security/API tests, 8 database tests, all 17 browser scripts, production build, TypeScript and production login/hydration checks. The purchase-cost browser test verifies default hiding, quantity calculation, explicit hide, reset on navigation/checkout/reload, mobile fit, print-media hiding and receipt exclusion. Dependency audit reports zero known vulnerabilities. Production was built with sample mode disabled. No live data or deployment was changed.
+
 # Upcoming supplier payments and payment at next visit — 28 October 2026
 
 A top-of-page Upcoming supplier payments overview shows all dated primary payables across suppliers, independent of the supplier search below. Overdue and today entries remain visible, ordered by date, with cheque/visit/payment type, supplier, planned amount, outstanding balance and a Record payment action. Long lists scroll internally instead of truncating entries. A cheque is the primary reminder when scheduled; otherwise an explicitly selected payment at next visit uses the remaining outstanding balance, falling back to a standalone payment due date. Settled and undated suppliers remain in the main supplier list.

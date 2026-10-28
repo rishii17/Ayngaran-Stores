@@ -2930,3 +2930,6 @@ td small {
 .supplier-upcoming-list { max-height: 300px; overflow: auto; }
 .supplier-visit-payment { display: flex; flex-direction: row; align-items: center; gap: 8px; }
 .supplier-visit-payment input { width: auto; }
+
+.bill-cost-toggle { font-size: 10px; padding: 4px 6px; color: var(--wine); background: transparent; border: 1px solid var(--line); border-radius: 4px; }
+.bill-purchase-cost { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 10px; color: #765239; padding: 5px 0; }
