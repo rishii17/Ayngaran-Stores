@@ -16,12 +16,12 @@ All printed purchase rates already equal MRP less **10% for the chocolate/confec
 
 ## Manual SQL import
 
-Use [`../../supabase/imports/cbl-2026-10-21.sql`](../../supabase/imports/cbl-2026-10-21.sql) in Supabase SQL Editor after the existing normalized-storage migration. This is an optional manual import, not a deployment migration. The owner selected proportional allocation across the chocolate/confectionery group and confirmed that the final amount was paid fully in cash to a new supplier. The owner UUID, new supplier label CBL, cash method and full paid amount are now prefilled. Review them before running the complete file.
+Use [`../../supabase/imports/cbl-2026-10-21.sql`](../../supabase/imports/cbl-2026-10-21.sql) in Supabase SQL Editor after the existing normalized-storage migration. This is an optional manual import, not a deployment migration. The owner selected proportional allocation across the chocolate/confectionery group and confirmed that the final amount was paid fully in cash to a new supplier. The owner UUID, new supplier CBL Ritzbury, cash method and full paid amount are now prefilled. Review them before running the complete file.
 
 Review the prefilled variables at the top:
 
 - `v_owner`: prefilled as `656a5487-ee52-4920-b0be-140b68991f0e` from your uploaded table. Verify that this is the intended store owner's UUID in this Supabase project. It must be an existing, initialized normalized store.
-- `v_supplier_id`: NULL to create a new supplier, as requested. `v_supplier_name` is prefilled as `CBL`, a label based on the receipt, not a verified legal company name. Change that label if your actual supplier uses a different name. A same-name supplier blocks duplicate creation and requires its existing ID instead. New supplier opening balance is zero.
+- `v_supplier_id`: NULL to create a new supplier, as requested. `v_supplier_name` is prefilled as `CBL Ritzbury`, the name confirmed by the owner. A same-name supplier blocks duplicate creation and requires its existing ID instead. New supplier opening balance is zero.
 - `v_paid`: prefilled as **88315.95**, the final net amount you confirmed was paid fully. The imported bill adds no outstanding payable. Do not import the bill again if it was already included in an existing purchase or supplier opening balance.
 - `v_payment_method`: prefilled as `'cash'`, as confirmed. This records the historical invoice payment and does not move money in today's cash drawer.
 - `v_discount_policy`: defaults to the owner-approved `'proportional_chocolate'` allocation across all chocolate/confectionery lines. Alternatively use `'confirmed_percentage'`, set `v_actual_percentage` to the real additional percentage, and set `v_discount_lines` to the eligible line numbers. That mode requires the chosen percentage/base to reproduce exactly the printed 1795.05 discount.

@@ -18,7 +18,7 @@ const configured = (policy = "proportional_chocolate") =>
       `v_owner uuid := '${owner}';`,
     )
     .replace(
-      "v_supplier_name text := 'CBL';",
+      "v_supplier_name text := 'CBL Ritzbury';",
       "v_supplier_name text := 'Local supplier fixture';",
     )
     .replace("v_paid numeric := 88315.95;", "v_paid numeric := 1000;")
@@ -293,7 +293,7 @@ test("SKU numbering follows AYS-105 without changing existing stock and rejects 
   }
 });
 
-test("owner-confirmed defaults create a new CBL supplier with the invoice fully paid in cash", async () => {
+test("owner-confirmed defaults create a new CBL Ritzbury supplier with the invoice fully paid in cash", async () => {
   const db = await setup();
   try {
     const script = sql.replace(
@@ -303,7 +303,7 @@ test("owner-confirmed defaults create a new CBL supplier with the invoice fully 
     await db.exec(script);
     const { state } = await stateFor(db, owner);
     assert.equal(state.suppliers.length, 1);
-    assert.equal(state.suppliers[0].name, "CBL");
+    assert.equal(state.suppliers[0].name, "CBL Ritzbury");
     assert.equal(state.suppliers[0].openingBalance, 0);
     assert.equal(state.purchases[0].paid, 88315.95);
     assert.equal(state.purchases[0].paymentMethod, "cash");
