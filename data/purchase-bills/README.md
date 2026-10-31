@@ -20,7 +20,7 @@ Use [`../../supabase/imports/cbl-2026-10-21.sql`](../../supabase/imports/cbl-202
 
 Set the variables at the top:
 
-- `v_owner`: the store owner's UUID from Supabase Authentication → Users. It must be an existing, initialized normalized store.
+- `v_owner`: prefilled as `656a5487-ee52-4920-b0be-140b68991f0e` from your uploaded table. Verify that this is the intended store owner's UUID in this Supabase project. It must be an existing, initialized normalized store.
 - `v_supplier_id`: an existing supplier ID from this store; alternatively leave it NULL and set `v_supplier_name` to the actual company name. CBL is printed as the POS/manufacturer identity; the script does not invent a supplier legal name. New supplier opening balance is zero.
 - `v_paid`: amount actually paid on this bill: 0 if wholly unpaid, 88315.95 if fully paid, or the real partial amount. Do not import another payable if this bill has already been included in an existing purchase or supplier opening balance.
 - `v_payment_method`: `'cash'` or `'bank'` for the historical purchase payment. This import does not move money in today's cash drawer.
@@ -34,7 +34,7 @@ After a successful run, refresh the store application and check Products, Invent
 
 ## Imported records and rounding
 
-The script inserts 62 new catalogue products with selling price set to printed MRP, no customer sale discount, no invented barcodes, the invoice's quantities as stock, one purchase with net total 88315.95, and 62 corresponding purchase stock movements. Import SKUs run **AYS-111 through AYS-172**, immediately after AYS-110. Existing products/stock through AYS-110 remain unchanged. These are local catalogue identifiers, not manufacturer SKUs/barcodes. If any target SKU already exists (including a case variant), the import aborts atomically; it does not silently skip to a different numbering range. Invoice alias `PHOTO-CBL-20261021-88315.95` and purchase number `IMP-CBL-20261021` are explicitly import references, because the invoice header number is not visible.
+The script inserts 62 new catalogue products with selling price set to printed MRP, no customer sale discount, no invented barcodes, the invoice's quantities as stock, one purchase with net total 88315.95, and 62 corresponding purchase stock movements. Import SKUs run **AYS-106 through AYS-167**, immediately after AYS-105. Your uploaded table uses AYS-105 for Sunsilk shampo pink 80ml, so the owner approved starting new products at AYS-106. Existing products/stock through AYS-105 remain unchanged. These are local catalogue identifiers, not manufacturer SKUs/barcodes. If any target SKU already exists (including a case variant), the import aborts atomically; it does not silently skip to a different numbering range. Invoice alias `PHOTO-CBL-20261021-88315.95` and purchase number `IMP-CBL-20261021` are explicitly import references, because the invoice header number is not visible.
 
 The two free Bubbles 30g packs are merged with the 24 billed packs: 26 received units share the net cost of the 24 paid units. The source billed quantity, free quantity and pre-discount rate remain recorded in purchase metadata. Retail units follow PKT → pack, BOX → box (line 47), and BTL → bottle (line 49).
 

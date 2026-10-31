@@ -13,7 +13,10 @@ const owner = "11111111-1111-4111-8111-111111111111";
 const other = "22222222-2222-4222-8222-222222222222";
 const configured = (policy = "proportional_chocolate") =>
   sql
-    .replace("v_owner uuid := NULL;", `v_owner uuid := '${owner}';`)
+    .replace(
+      "v_owner uuid := '656a5487-ee52-4920-b0be-140b68991f0e';",
+      `v_owner uuid := '${owner}';`,
+    )
     .replace(
       "v_supplier_name text := NULL;",
       "v_supplier_name text := 'Local supplier fixture';",
@@ -66,8 +69,8 @@ test("photographed bill imports exact totals, net purchase costs, free stock and
     const current = await stateFor(db, owner);
     const s = current.state;
     assert.equal(s.products.length, 62);
-    assert.equal(s.products[0].sku, "AYS-111");
-    assert.equal(s.products[61].sku, "AYS-172");
+    assert.equal(s.products[0].sku, "AYS-106");
+    assert.equal(s.products[61].sku, "AYS-167");
     assert.equal(new Set(s.products.map((product) => product.sku)).size, 62);
     assert.equal(s.purchases.length, 1);
     assert.equal(s.movements.length, 62);
@@ -227,30 +230,30 @@ test("existing product collisions roll back all new supplier, stock and purchase
   }
 });
 
-test("SKU numbering follows AYS-110 without changing existing stock and rejects occupied target SKUs", async () => {
+test("SKU numbering follows AYS-105 without changing existing stock and rejects occupied target SKUs", async () => {
   const db = await setup();
   try {
     await db.query(
-      "insert into public.ayngaran_products(owner_id,id,name,sku,price,cost,active) values($1,'old-110','Existing product','AYS-110',50,40,true)",
+      "insert into public.ayngaran_products(owner_id,id,name,sku,price,cost,active) values($1,'old-105','Existing product','AYS-105',50,40,true)",
       [owner],
     );
     await db.query(
-      "insert into public.ayngaran_inventory(owner_id,id,stock) values($1,'old-110',9)",
+      "insert into public.ayngaran_inventory(owner_id,id,stock) values($1,'old-105',9)",
       [owner],
     );
     await db.exec(configured());
     const current = await stateFor(db, owner);
     assert.equal(current.state.products.length, 63);
     assert.equal(
-      current.state.products.find((p) => p.sku === "AYS-110").stock,
+      current.state.products.find((p) => p.sku === "AYS-105").stock,
       9,
     );
     assert.equal(
-      current.state.products.find((p) => p.sku === "AYS-111").sourceLine,
+      current.state.products.find((p) => p.sku === "AYS-106").sourceLine,
       1,
     );
     assert.equal(
-      current.state.products.find((p) => p.sku === "AYS-172").sourceLine,
+      current.state.products.find((p) => p.sku === "AYS-167").sourceLine,
       62,
     );
   } finally {
@@ -259,7 +262,7 @@ test("SKU numbering follows AYS-110 without changing existing stock and rejects 
   const occupied = await setup();
   try {
     await occupied.query(
-      "insert into public.ayngaran_products(owner_id,id,name,sku,price,cost,active) values($1,'occupied','Different product','ays-111',50,40,true)",
+      "insert into public.ayngaran_products(owner_id,id,name,sku,price,cost,active) values($1,'occupied','Different product','ays-106 ',50,40,true)",
       [owner],
     );
     await occupied.query(

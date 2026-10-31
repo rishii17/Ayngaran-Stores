@@ -37,7 +37,7 @@ for r in rows:
     net = D(r["printed_total"]) - discount
     cost = (net / received).quantize(D("0.01"), rounding=ROUND_HALF_UP)
     adjustment = net - (cost * received).quantize(D("0.01"), rounding=ROUND_HALF_UP)
-    review.append({"line": line, "sku": f"AYS-{110 + line:03d}", "name": r["name"], "mrp": r["mrp"], "base_discount_percent": 10 if r["group"] == "chocolate" else 15,
+    review.append({"line": line, "sku": f"AYS-{105 + line:03d}", "name": r["name"], "mrp": r["mrp"], "base_discount_percent": 10 if r["group"] == "chocolate" else 15,
                    "printed_purchase_rate": r["invoice_rate"], "billed_quantity": r["quantity"], "free_quantity": free,
                    "received_quantity": str(received), "allocated_extra_discount": f"{discount:.2f}", "net_line_total": f"{net:.2f}",
                    "final_unit_purchase_cost": f"{cost:.2f}", "cost_rounding_adjustment": f"{adjustment:.2f}"})
