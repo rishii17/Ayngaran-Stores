@@ -4,7 +4,8 @@
 -- Supplier payment is UNKNOWN: enter the amount actually paid; never guess.
 -- Printed rates ALREADY include 10% (chocolate) / 15% (cake) off MRP.
 -- The further Rs 1795.05 discount has NO visible percentage/eligibility on the photos.
--- Choose its allocation explicitly; UNCONFIRMED deliberately prevents writes.
+-- Owner chose proportional allocation across the chocolate/confectionery group.
+-- This is a cost allocation, not a claimed supplier promotional percentage.
 begin;
 do $import$
 declare
@@ -13,7 +14,7 @@ declare
   v_supplier_name text := NULL; -- Required only when creating a supplier.
   v_paid numeric := NULL; -- 0 if entirely unpaid; 88315.95 if fully paid; actual amount otherwise.
   v_payment_method text := NULL; -- 'cash' or 'bank' for the historical invoice payment.
-  v_discount_policy text := 'UNCONFIRMED'; -- 'proportional_chocolate' OR 'confirmed_percentage'.
+  v_discount_policy text := 'proportional_chocolate'; -- Owner-approved allocation; alternative: 'confirmed_percentage'.
   v_actual_percentage numeric := NULL; -- Required only for confirmed_percentage.
   v_discount_lines integer[] := NULL; -- Eligible bill line numbers for confirmed_percentage.
 

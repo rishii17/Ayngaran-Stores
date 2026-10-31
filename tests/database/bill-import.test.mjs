@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
+import ExcelJS from "exceljs";
+import { Readable } from "node:stream";
 import { emptyState, supplierBalance } from "../../lib/domain.mjs";
 const sql = readFileSync(
   new URL("../../supabase/imports/cbl-2026-10-21.sql", import.meta.url),
@@ -22,7 +24,7 @@ const configured = (policy = "proportional_chocolate") =>
       "v_payment_method text := 'bank';",
     )
     .replace(
-      "v_discount_policy text := 'UNCONFIRMED';",
+      "v_discount_policy text := 'proportional_chocolate';",
       `v_discount_policy text := '${policy}';`,
     );
 async function setup() {
@@ -71,6 +73,39 @@ test("photographed bill imports exact totals, net purchase costs, free stock and
     assert.equal(bill.paid, 1000);
     assert.equal(supplierBalance(s, s.suppliers[0].id), 87315.95);
     assert.equal(bill.items.length, 62);
+    const review = new ExcelJS.Workbook();
+    const sheet = await review.csv.read(
+      Readable.from([
+        readFileSync(
+          new URL(
+            "../../data/purchase-bills/cbl-2026-10-21-net-costs.csv",
+            import.meta.url,
+          ),
+          "utf8",
+        ),
+      ]),
+    );
+    const headers = sheet.getRow(1).values;
+    for (const line of bill.items) {
+      const row = sheet.getRow(line.sourceLine + 1);
+      assert.equal(
+        Number(row.getCell(headers.indexOf("line")).value),
+        line.sourceLine,
+      );
+      assert.equal(
+        Number(row.getCell(headers.indexOf("final_unit_purchase_cost")).value),
+        line.cost,
+      );
+      assert.equal(
+        Number(row.getCell(headers.indexOf("net_line_total")).value),
+        line.total,
+      );
+      assert.equal(
+        Number(row.getCell(headers.indexOf("allocated_extra_discount")).value),
+        line.allocatedInvoiceDiscount,
+      );
+    }
+
     const sum = (key) =>
       Math.round(
         bill.items.reduce((total, item) => total + item[key], 0) * 100,

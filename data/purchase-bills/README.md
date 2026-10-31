@@ -16,7 +16,7 @@ All printed purchase rates already equal MRP less **10% for the chocolate/confec
 
 ## Manual SQL import
 
-Use [`../../supabase/imports/cbl-2026-10-21.sql`](../../supabase/imports/cbl-2026-10-21.sql) in Supabase SQL Editor after the existing normalized-storage migration. This is an optional manual import, not a deployment migration. The file defaults to missing inputs and `UNCONFIRMED`, and therefore refuses to write until configured.
+Use [`../../supabase/imports/cbl-2026-10-21.sql`](../../supabase/imports/cbl-2026-10-21.sql) in Supabase SQL Editor after the existing normalized-storage migration. This is an optional manual import, not a deployment migration. The owner selected proportional allocation across the chocolate/confectionery group. The file defaults to that policy but refuses to write until the owner, supplier and actual payment inputs are configured.
 
 Set the variables at the top:
 
@@ -24,9 +24,13 @@ Set the variables at the top:
 - `v_supplier_id`: an existing supplier ID from this store; alternatively leave it NULL and set `v_supplier_name` to the actual company name. CBL is printed as the POS/manufacturer identity; the script does not invent a supplier legal name. New supplier opening balance is zero.
 - `v_paid`: amount actually paid on this bill: 0 if wholly unpaid, 88315.95 if fully paid, or the real partial amount. Do not import another payable if this bill has already been included in an existing purchase or supplier opening balance.
 - `v_payment_method`: `'cash'` or `'bank'` for the historical purchase payment. This import does not move money in today's cash drawer.
-- `v_discount_policy`: set `'proportional_chocolate'` **only if you choose to allocate the printed extra discount across all chocolate lines**. Alternatively use `'confirmed_percentage'`, set `v_actual_percentage` to the real additional percentage, and set `v_discount_lines` to the eligible line numbers. That mode requires the chosen percentage/base to reproduce exactly the printed 1795.05 discount.
+- `v_discount_policy`: defaults to the owner-approved `'proportional_chocolate'` allocation across all chocolate/confectionery lines. Alternatively use `'confirmed_percentage'`, set `v_actual_percentage` to the real additional percentage, and set `v_discount_lines` to the eligible line numbers. That mode requires the chosen percentage/base to reproduce exactly the printed 1795.05 discount.
 
-The discount allocation question remains pending; no allocation has been asserted as the supplier's actual offer. Both policies are implemented and locally tested. The confirmed-percentage test uses a synthetic arithmetic fixture, not evidence about this bill's promotion.
+The owner confirmed proportional allocation across the chocolate/confectionery group. This allocation is not asserted as the supplier's actual promotional percentage. Both policies are implemented and locally tested. The confirmed-percentage test uses a synthetic arithmetic fixture, not evidence about this bill's promotion.
+
+The approved final costs are listed in [`cbl-2026-10-21-net-costs.csv`](cbl-2026-10-21-net-costs.csv), including each allocated extra discount, received quantity, final unit cost and rounding adjustment. For example, Choco-La Milk 20g is Rs. 43.37 per pack; Bubbles 30g is Rs. 80.07 per received pack after sharing the paid cost across 26 packs. Cakes retain their printed rates.
+
+After a successful run, refresh the store application and check Products, Inventory, the imported purchase and the supplier balance. No automatic deployment or live import is performed by saving these files.
 
 ## Imported records and rounding
 
