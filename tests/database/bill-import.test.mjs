@@ -66,6 +66,9 @@ test("photographed bill imports exact totals, net purchase costs, free stock and
     const current = await stateFor(db, owner);
     const s = current.state;
     assert.equal(s.products.length, 62);
+    assert.equal(s.products[0].sku, "AYS-111");
+    assert.equal(s.products[61].sku, "AYS-172");
+    assert.equal(new Set(s.products.map((product) => product.sku)).size, 62);
     assert.equal(s.purchases.length, 1);
     assert.equal(s.movements.length, 62);
     const bill = s.purchases[0];
@@ -221,5 +224,57 @@ test("existing product collisions roll back all new supplier, stock and purchase
     assert.equal(revision, 0);
   } finally {
     await db.close();
+  }
+});
+
+test("SKU numbering follows AYS-110 without changing existing stock and rejects occupied target SKUs", async () => {
+  const db = await setup();
+  try {
+    await db.query(
+      "insert into public.ayngaran_products(owner_id,id,name,sku,price,cost,active) values($1,'old-110','Existing product','AYS-110',50,40,true)",
+      [owner],
+    );
+    await db.query(
+      "insert into public.ayngaran_inventory(owner_id,id,stock) values($1,'old-110',9)",
+      [owner],
+    );
+    await db.exec(configured());
+    const current = await stateFor(db, owner);
+    assert.equal(current.state.products.length, 63);
+    assert.equal(
+      current.state.products.find((p) => p.sku === "AYS-110").stock,
+      9,
+    );
+    assert.equal(
+      current.state.products.find((p) => p.sku === "AYS-111").sourceLine,
+      1,
+    );
+    assert.equal(
+      current.state.products.find((p) => p.sku === "AYS-172").sourceLine,
+      62,
+    );
+  } finally {
+    await db.close();
+  }
+  const occupied = await setup();
+  try {
+    await occupied.query(
+      "insert into public.ayngaran_products(owner_id,id,name,sku,price,cost,active) values($1,'occupied','Different product','ays-111',50,40,true)",
+      [owner],
+    );
+    await occupied.query(
+      "insert into public.ayngaran_inventory(owner_id,id,stock) values($1,'occupied',9)",
+      [owner],
+    );
+    await assert.rejects(occupied.exec(configured()), /SKU.*already exists/);
+    await occupied.exec("rollback");
+    const current = await stateFor(occupied, owner);
+    assert.equal(current.state.products.length, 1);
+    assert.equal(current.state.products[0].stock, 9);
+    assert.equal(current.state.purchases.length, 0);
+    assert.equal(current.state.suppliers.length, 0);
+    assert.equal(current.revision, 0);
+  } finally {
+    await occupied.close();
   }
 });

@@ -34,13 +34,13 @@ After a successful run, refresh the store application and check Products, Invent
 
 ## Imported records and rounding
 
-The script inserts 62 new catalogue products with selling price set to printed MRP, no customer sale discount, no invented barcodes, the invoice's quantities as stock, one purchase with net total 88315.95, and 62 corresponding purchase stock movements. Import SKUs (`BILL-CBL-20261021-...`) are local identifiers, not manufacturer SKUs/barcodes. Invoice alias `PHOTO-CBL-20261021-88315.95` and purchase number `IMP-CBL-20261021` are explicitly import references, because the invoice header number is not visible.
+The script inserts 62 new catalogue products with selling price set to printed MRP, no customer sale discount, no invented barcodes, the invoice's quantities as stock, one purchase with net total 88315.95, and 62 corresponding purchase stock movements. Import SKUs run **AYS-111 through AYS-172**, immediately after AYS-110. Existing products/stock through AYS-110 remain unchanged. These are local catalogue identifiers, not manufacturer SKUs/barcodes. If any target SKU already exists (including a case variant), the import aborts atomically; it does not silently skip to a different numbering range. Invoice alias `PHOTO-CBL-20261021-88315.95` and purchase number `IMP-CBL-20261021` are explicitly import references, because the invoice header number is not visible.
 
 The two free Bubbles 30g packs are merged with the 24 billed packs: 26 received units share the net cost of the 24 paid units. The source billed quantity, free quantity and pre-discount rate remain recorded in purchase metadata. Retail units follow PKT → pack, BOX → box (line 47), and BTL → bottle (line 49).
 
 Largest-remainder allocation distributes the extra discount to cents, preserving the exact invoice net. Unit costs are rounded to two decimals for the application's existing cost fields. Exact effective unit costs and each line's `costRoundingAdjustment` remain in metadata, because a cent-rounded unit cost multiplied by a quantity may differ slightly from the exact invoiced line total. Purchase line totals retain the exact net allocations. VAT is included as printed and is not added again.
 
-This imports historical received quantities as new stock; it cannot determine quantities already sold since the bill date. Review against current inventory first. Existing matching names or import SKUs cause the entire transaction to roll back; existing products are not silently merged, overwritten or restocked. An exact rerun is a no-op using an owner-scoped import request marker. All writes are owner-scoped and bump the store revision once.
+This imports historical received quantities as new stock; it cannot determine quantities already sold since the bill date. Review against current inventory first. Existing matching names or import SKUs cause the entire transaction to roll back; existing products are not silently merged, overwritten or restocked. An exact rerun is a no-op using an owner-scoped import request marker. If the earlier version of this bill import was already executed, this script does not rename or duplicate its products; an explicit SKU-only update would be a separate operation. All writes are owner-scoped and bump the store revision once.
 
 ## Transcription review
 
@@ -50,4 +50,4 @@ This imports historical received quantities as new stock; it cannot determine qu
 
 Regenerate the embedded SQL after a reviewed CSV/template change with `python3 scripts/build-cbl-bill-import.py`. Validate using `npm run test:database`. No code or script here automatically connects to Supabase or executes the import.
 
-Validation: 72 application tests and all 12 local database tests passed. Database tests cover both allocation modes, exact totals, free quantities, unit-cost rounding metadata, actual-paid/payable arithmetic, owner isolation, reruns, missing inputs and collision rollback. Tests use local fixtures; no live Supabase data was modified.
+Validation: 72 application tests and all 13 local database tests passed. Database tests cover both allocation modes, exact totals, free quantities, unit-cost rounding metadata, actual-paid/payable arithmetic, owner isolation, reruns, missing inputs and collision rollback. Tests use local fixtures; no live Supabase data was modified.

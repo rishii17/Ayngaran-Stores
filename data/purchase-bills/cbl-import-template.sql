@@ -1,4 +1,6 @@
 -- MANUAL IMPORT ONLY. Not a deployment migration. Run in Supabase SQL Editor.
+-- Targets the normalized public.ayngaran_* tables in this repository.
+-- SKUs start AFTER AYS-110: this bill uses AYS-111 through AYS-172.
 -- Fill the configuration below. No live database was accessed to prepare this.
 -- Prices are VAT-inclusive as printed. Selling prices default to printed MRP.
 -- Supplier payment is UNKNOWN: enter the amount actually paid; never guess.
@@ -61,7 +63,7 @@ begin
     false as eligible, 0::numeric as allocated_discount,
     0::numeric as net_total, 0::numeric as unit_cost,
     md5(v_owner::text || ':' || v_key || ':product:' || line) as product_id,
-    'BILL-CBL-20261021-' || lpad(line::text,3,'0') as sku
+    'AYS-' || lpad((110+line)::text,3,'0') as sku
   from jsonb_to_recordset(v_rows) as x(line integer,name text,mrp numeric,billed_quantity numeric,rate numeric,gross numeric,group_name text);
   if (select count(*) from cbl_bill_import) <> 62 or (select sum(gross) from cbl_bill_import) <> 90111
     or exists (select 1 from cbl_bill_import where round(rate*billed_quantity,2)<>gross or billed_quantity<=0 or rate<=0 or mrp<rate) then
@@ -115,7 +117,7 @@ begin
     raise exception 'A matching purchase already exists; reconcile the previous entry instead of importing twice';
   end if;
   if exists (select 1 from cbl_bill_import b join public.ayngaran_products p on p.owner_id=v_owner and
-    (p.id=b.product_id or p.sku=b.sku or lower(p.name)=lower(b.name))) then
+    (p.id=b.product_id or lower(p.sku)=lower(b.sku) or lower(p.name)=lower(b.name))) then
     raise exception 'An imported SKU or matching product name already exists. Review/map existing products before importing; no stock was overwritten';
   end if;
 
