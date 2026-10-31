@@ -16,14 +16,14 @@ All printed purchase rates already equal MRP less **10% for the chocolate/confec
 
 ## Manual SQL import
 
-Use [`../../supabase/imports/cbl-2026-10-21.sql`](../../supabase/imports/cbl-2026-10-21.sql) in Supabase SQL Editor after the existing normalized-storage migration. This is an optional manual import, not a deployment migration. The owner selected proportional allocation across the chocolate/confectionery group. The file defaults to that policy but refuses to write until the owner, supplier and actual payment inputs are configured.
+Use [`../../supabase/imports/cbl-2026-10-21.sql`](../../supabase/imports/cbl-2026-10-21.sql) in Supabase SQL Editor after the existing normalized-storage migration. This is an optional manual import, not a deployment migration. The owner selected proportional allocation across the chocolate/confectionery group and confirmed that the final amount was paid fully in cash to a new supplier. The owner UUID, new supplier label CBL, cash method and full paid amount are now prefilled. Review them before running the complete file.
 
-Set the variables at the top:
+Review the prefilled variables at the top:
 
 - `v_owner`: prefilled as `656a5487-ee52-4920-b0be-140b68991f0e` from your uploaded table. Verify that this is the intended store owner's UUID in this Supabase project. It must be an existing, initialized normalized store.
-- `v_supplier_id`: an existing supplier ID from this store; alternatively leave it NULL and set `v_supplier_name` to the actual company name. CBL is printed as the POS/manufacturer identity; the script does not invent a supplier legal name. New supplier opening balance is zero.
-- `v_paid`: amount actually paid on this bill: 0 if wholly unpaid, 88315.95 if fully paid, or the real partial amount. Do not import another payable if this bill has already been included in an existing purchase or supplier opening balance.
-- `v_payment_method`: `'cash'` or `'bank'` for the historical purchase payment. This import does not move money in today's cash drawer.
+- `v_supplier_id`: NULL to create a new supplier, as requested. `v_supplier_name` is prefilled as `CBL`, a label based on the receipt, not a verified legal company name. Change that label if your actual supplier uses a different name. A same-name supplier blocks duplicate creation and requires its existing ID instead. New supplier opening balance is zero.
+- `v_paid`: prefilled as **88315.95**, the final net amount you confirmed was paid fully. The imported bill adds no outstanding payable. Do not import the bill again if it was already included in an existing purchase or supplier opening balance.
+- `v_payment_method`: prefilled as `'cash'`, as confirmed. This records the historical invoice payment and does not move money in today's cash drawer.
 - `v_discount_policy`: defaults to the owner-approved `'proportional_chocolate'` allocation across all chocolate/confectionery lines. Alternatively use `'confirmed_percentage'`, set `v_actual_percentage` to the real additional percentage, and set `v_discount_lines` to the eligible line numbers. That mode requires the chosen percentage/base to reproduce exactly the printed 1795.05 discount.
 
 The owner confirmed proportional allocation across the chocolate/confectionery group. This allocation is not asserted as the supplier's actual promotional percentage. Both policies are implemented and locally tested. The confirmed-percentage test uses a synthetic arithmetic fixture, not evidence about this bill's promotion.
@@ -50,4 +50,4 @@ This imports historical received quantities as new stock; it cannot determine qu
 
 Regenerate the embedded SQL after a reviewed CSV/template change with `python3 scripts/build-cbl-bill-import.py`. Validate using `npm run test:database`. No code or script here automatically connects to Supabase or executes the import.
 
-Validation: 72 application tests and all 13 local database tests passed. Database tests cover both allocation modes, exact totals, free quantities, unit-cost rounding metadata, actual-paid/payable arithmetic, owner isolation, reruns, missing inputs and collision rollback. Tests use local fixtures; no live Supabase data was modified.
+Validation: 72 application tests and all 14 local database tests passed. Database tests cover both allocation modes, exact totals, free quantities, unit-cost rounding metadata, actual-paid/payable arithmetic, owner isolation, reruns, missing inputs and collision rollback. Tests use local fixtures; no live Supabase data was modified.

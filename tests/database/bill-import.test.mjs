@@ -18,12 +18,12 @@ const configured = (policy = "proportional_chocolate") =>
       `v_owner uuid := '${owner}';`,
     )
     .replace(
-      "v_supplier_name text := NULL;",
+      "v_supplier_name text := 'CBL';",
       "v_supplier_name text := 'Local supplier fixture';",
     )
-    .replace("v_paid numeric := NULL;", "v_paid numeric := 1000;")
+    .replace("v_paid numeric := 88315.95;", "v_paid numeric := 1000;")
     .replace(
-      "v_payment_method text := NULL;",
+      "v_payment_method text := 'cash';",
       "v_payment_method text := 'bank';",
     )
     .replace(
@@ -159,7 +159,18 @@ test("missing business inputs or a non-reconciling percentage never write partia
   const db = await setup();
   try {
     for (const script of [
-      sql,
+      configured().replace(
+        "v_paid numeric := 1000;",
+        "v_paid numeric := NULL;",
+      ),
+      configured().replace(
+        "v_payment_method text := 'bank';",
+        "v_payment_method text := NULL;",
+      ),
+      configured().replace(
+        "v_supplier_name text := 'Local supplier fixture';",
+        "v_supplier_name text := NULL;",
+      ),
       configured("UNCONFIRMED"),
       configured("confirmed_percentage")
         .replace(
@@ -279,5 +290,30 @@ test("SKU numbering follows AYS-105 without changing existing stock and rejects 
     assert.equal(current.revision, 0);
   } finally {
     await occupied.close();
+  }
+});
+
+test("owner-confirmed defaults create a new CBL supplier with the invoice fully paid in cash", async () => {
+  const db = await setup();
+  try {
+    const script = sql.replace(
+      "v_owner uuid := '656a5487-ee52-4920-b0be-140b68991f0e';",
+      `v_owner uuid := '${owner}';`,
+    );
+    await db.exec(script);
+    const { state } = await stateFor(db, owner);
+    assert.equal(state.suppliers.length, 1);
+    assert.equal(state.suppliers[0].name, "CBL");
+    assert.equal(state.suppliers[0].openingBalance, 0);
+    assert.equal(state.purchases[0].paid, 88315.95);
+    assert.equal(state.purchases[0].paymentMethod, "cash");
+    assert.equal(state.purchases[0].total, 88315.95);
+    assert.equal(supplierBalance(state, state.suppliers[0].id), 0);
+    assert.equal(state.payments.length, 0);
+    assert.equal((state.cashMovements || []).length, 0);
+    assert.equal(state.products[0].sku, "AYS-106");
+    assert.equal(state.products[61].sku, "AYS-167");
+  } finally {
+    await db.close();
   }
 });
