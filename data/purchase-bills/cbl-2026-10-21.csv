@@ -1,0 +1,63 @@
+line,name,mrp,quantity,invoice_rate,printed_total,group
+1,Choco-La Milk 20g SACMI,50,24,45,1080,chocolate
+2,Choco-La Milk Sweet 20g SACMI,50,48,45,2160,chocolate
+3,Choco-La Milk 45g,100,12,90,1080,chocolate
+4,Choco-La Crispies 45g,100,12,90,1080,chocolate
+5,Choco-La Milk 90g,200,6,180,1080,chocolate
+6,Chokybix Butter Scotch 17g SPS,50,24,45,1080,chocolate
+7,Chokybix Butter Scotch 43g SPS,120,3,108,324,chocolate
+8,Ritzbury Milk 45g PP,140,6,126,756,chocolate
+9,Ritzbury Crispy 45g PP,140,6,126,756,chocolate
+10,Ritzbury Cashew 45g PP,200,6,180,1080,chocolate
+11,Ritzbury Fruit and Nut 45g PP SPS,180,6,162,972,chocolate
+12,Ritzbury Peanut 45g PP,140,6,126,756,chocolate
+13,Ritzbury Milk Sweet 45g PP,120,12,108,1296,chocolate
+14,Ritzbury Milk Sweet 93g,230,6,207,1242,chocolate
+15,Ritzbury Milk 93g PP,270,3,243,729,chocolate
+16,Ritzbury Crispy 93g,270,3,243,729,chocolate
+17,Ritzbury Fruit and Nut 93g,350,3,315,945,chocolate
+18,Ritzbury Peanut Bar 50g,150,6,135,810,chocolate
+19,Ritzbury Cashew Bar 50g,200,6,180,1080,chocolate
+20,Bubbles 4.5g,10,216,9,1944,chocolate
+21,Bubbles 30g,100,24,90,2160,chocolate
+22,Bubbles 100g SPS,250,3,225,675,chocolate
+23,Bubbles 170g,450,3,405,1215,chocolate
+24,Chocolate Fingers 18g,40,32,36,1152,chocolate
+25,Chocolate Fingers 40g,100,6,90,540,chocolate
+26,Chocolate Fingers 80g A,160,6,144,864,chocolate
+27,Chocolate Fingers 110g A,250,6,225,1350,chocolate
+28,Chunky Choc 20g,40,24,36,864,chocolate
+29,Chunky Choc Trio 60g,120,6,108,648,chocolate
+30,Chunky Choc 120g A,250,6,225,1350,chocolate
+31,Choco-Mo 40g,120,6,108,648,chocolate
+32,Choco-Mo 2DZ Pack,250,6,225,1350,chocolate
+33,Choc-O-Fruit 7g,20,24,18,432,chocolate
+34,Pebbles Peanut 7g,20,24,18,432,chocolate
+35,Pebbles Original 8g,20,24,18,432,chocolate
+36,Pebbles 25g Tube,100,12,90,1080,chocolate
+37,Popit 9g,20,72,18,1296,chocolate
+38,Popit 20g Tube,80,12,72,864,chocolate
+39,Choc-A-Nut 30g BB,70,6,63,378,chocolate
+40,Choc-A-Nut 50g,120,6,108,648,chocolate
+41,Rave Bottle 13g,40,36,36,1296,chocolate
+42,Champ Bottle 13g,40,36,36,1296,chocolate
+43,Tropica Bottle 13g,40,36,36,1296,chocolate
+44,Rave 26g,70,12,63,756,chocolate
+45,Champ 26g,70,12,63,756,chocolate
+46,Tropica 26g,70,12,63,756,chocolate
+47,Duo Strawberry 20g,50,24,45,1080,chocolate
+48,Black Magic 20g,60,24,54,1296,chocolate
+49,Uno Bottle 10g,20,48,18,864,chocolate
+50,O-Kay Sponge Layer Cake Vanilla 18g,40,24,34,816,cake
+51,Rollo 30g,80,18,68,1224,cake
+52,Go Chok Vanilla 30g,80,18,68,1224,cake
+53,Swiss Roll Chocolate 200g,420,12,357,4284,cake
+54,Swiss Roll Vanilla 200g,380,12,323,3876,cake
+55,Swiss Roll Strawberry 200g,380,12,323,3876,cake
+56,Butter Sponge 240g,450,6,382.50,2295,cake
+57,Butter Raisin 250g,520,6,442,2652,cake
+58,Sponge Layer Chocolate 310g,600,12,510,6120,cake
+59,Sponge Layer Vanilla 310g,580,12,493,5916,cake
+60,Sponge Layer Strawberry 310g,580,12,493,5916,cake
+61,Sponge Layer Vanilla 480g,900,3,765,2295,cake
+62,4GB Nutra 10g,20,48,18,864,chocolate

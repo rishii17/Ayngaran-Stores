@@ -244,3 +244,7 @@ The overview shows the cheque amount (or “Not set”), remaining payable and a
 ### Show purchase costs while billing
 
 In **Point of Sale → Current bill**, click **Show purchase costs** to reveal each product’s current saved purchase cost per unit and its quantity-based line cost. Click **Hide purchase costs** to hide them. Costs are hidden by default and are not remembered across reloads. Leaving POS or emptying/completing/holding the bill resets visibility. The displayed cost is the current product cost, not a supplier quote or a full purchase-cost history. It does not change selling prices or bill totals. Purchase costs are excluded from customer receipts and print output.
+
+### Import the photographed CBL purchase bill
+
+The 62 paid lines from the bill printed 21 October 2026 are transcribed in [`data/purchase-bills/cbl-2026-10-21.csv`](data/purchase-bills/cbl-2026-10-21.csv). A guarded manual [SQL import](supabase/imports/cbl-2026-10-21.sql) can create the catalogue, invoice quantities (including two free Bubbles 30g packs) and purchase history for one explicitly configured owner. Read the [bill review and configuration](data/purchase-bills/README.md) first. Printed purchase rates already include 10% or 15% off MRP; the further Rs. 1,795.05 discount needs an explicit allocation choice. The script defaults to UNCONFIRMED and does not run automatically. No live database import has been performed.

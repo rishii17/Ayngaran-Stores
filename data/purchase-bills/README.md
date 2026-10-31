@@ -1,0 +1,49 @@
+# CBL photographed purchase bill, printed 21 October 2026
+
+The supplied four overlapping photographs contain 62 paid lines and two free Bubbles 30g packs. `cbl-2026-10-21.csv` is the reviewed transcription of the paid lines. The visible footer identifies CBL IT POS and a print time of 21-10-2026 17:04, but the legal supplier name, invoice number, payment status and additional discount percentage are not visible. No live database was accessed or seeded.
+
+## Arithmetic confirmed from the photographs
+
+| Item | LKR |
+| --- | ---: |
+| Chocolate/confectionery candidate group (1–49 and 62) | 49,617.00 |
+| Cake paid lines (50–61) | 40,494.00 |
+| Gross at printed purchase rates | 90,111.00 |
+| Further printed CHOCOLATE discount | 1,795.05 |
+| Final invoice net | 88,315.95 |
+
+All printed purchase rates already equal MRP less **10% for the chocolate/confectionery lines** or **15% for the cake lines**. For example, MRP 50 → purchase rate 45; MRP 450 → cake purchase rate 382.50. Do not apply those percentages again to the printed rates. The further 1,795.05 deduction is separate. Its actual promotional percentage and eligible products cannot be determined from the images. Dividing it across *all* chocolate lines would produce an effective allocation rate of approximately 3.6178124433%; that is **not** a percentage printed on the bill.
+
+## Manual SQL import
+
+Use [`../../supabase/imports/cbl-2026-10-21.sql`](../../supabase/imports/cbl-2026-10-21.sql) in Supabase SQL Editor after the existing normalized-storage migration. This is an optional manual import, not a deployment migration. The file defaults to missing inputs and `UNCONFIRMED`, and therefore refuses to write until configured.
+
+Set the variables at the top:
+
+- `v_owner`: the store owner's UUID from Supabase Authentication → Users. It must be an existing, initialized normalized store.
+- `v_supplier_id`: an existing supplier ID from this store; alternatively leave it NULL and set `v_supplier_name` to the actual company name. CBL is printed as the POS/manufacturer identity; the script does not invent a supplier legal name. New supplier opening balance is zero.
+- `v_paid`: amount actually paid on this bill: 0 if wholly unpaid, 88315.95 if fully paid, or the real partial amount. Do not import another payable if this bill has already been included in an existing purchase or supplier opening balance.
+- `v_payment_method`: `'cash'` or `'bank'` for the historical purchase payment. This import does not move money in today's cash drawer.
+- `v_discount_policy`: set `'proportional_chocolate'` **only if you choose to allocate the printed extra discount across all chocolate lines**. Alternatively use `'confirmed_percentage'`, set `v_actual_percentage` to the real additional percentage, and set `v_discount_lines` to the eligible line numbers. That mode requires the chosen percentage/base to reproduce exactly the printed 1795.05 discount.
+
+The discount allocation question remains pending; no allocation has been asserted as the supplier's actual offer. Both policies are implemented and locally tested. The confirmed-percentage test uses a synthetic arithmetic fixture, not evidence about this bill's promotion.
+
+## Imported records and rounding
+
+The script inserts 62 new catalogue products with selling price set to printed MRP, no customer sale discount, no invented barcodes, the invoice's quantities as stock, one purchase with net total 88315.95, and 62 corresponding purchase stock movements. Import SKUs (`BILL-CBL-20261021-...`) are local identifiers, not manufacturer SKUs/barcodes. Invoice alias `PHOTO-CBL-20261021-88315.95` and purchase number `IMP-CBL-20261021` are explicitly import references, because the invoice header number is not visible.
+
+The two free Bubbles 30g packs are merged with the 24 billed packs: 26 received units share the net cost of the 24 paid units. The source billed quantity, free quantity and pre-discount rate remain recorded in purchase metadata. Retail units follow PKT → pack, BOX → box (line 47), and BTL → bottle (line 49).
+
+Largest-remainder allocation distributes the extra discount to cents, preserving the exact invoice net. Unit costs are rounded to two decimals for the application's existing cost fields. Exact effective unit costs and each line's `costRoundingAdjustment` remain in metadata, because a cent-rounded unit cost multiplied by a quantity may differ slightly from the exact invoiced line total. Purchase line totals retain the exact net allocations. VAT is included as printed and is not added again.
+
+This imports historical received quantities as new stock; it cannot determine quantities already sold since the bill date. Review against current inventory first. Existing matching names or import SKUs cause the entire transaction to roll back; existing products are not silently merged, overwritten or restocked. An exact rerun is a no-op using an owner-scoped import request marker. All writes are owner-scoped and bump the store revision once.
+
+## Transcription review
+
+- Line 28's faded amount is reconstructed as 24 × 36 = **864.00**, which reconciles the printed gross. The print resembles `86 .00`.
+- Line 32's small pack-size text is ambiguous in the photograph. The safe product name is **Choco-Mo 2DZ Pack**; verify its weight on the actual pack and rename if needed. Its quantity 6, MRP 250 and purchase rate 225 are clear. Metadata marks this label for review.
+- Line 17 is partly cropped in one photograph but readable across the overlap: quantity 3 × rate 315 = 945.
+
+Regenerate the embedded SQL after a reviewed CSV/template change with `python3 scripts/build-cbl-bill-import.py`. Validate using `npm run test:database`. No code or script here automatically connects to Supabase or executes the import.
+
+Validation: 72 application tests and all 12 local database tests passed. Database tests cover both allocation modes, exact totals, free quantities, unit-cost rounding metadata, actual-paid/payable arithmetic, owner isolation, reruns, missing inputs and collision rollback. Tests use local fixtures; no live Supabase data was modified.
